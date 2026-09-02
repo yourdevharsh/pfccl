@@ -9,6 +9,15 @@ function CompanyTree({
   onAddCompany,
   onDeleteCompany,
 }) {
+  const companySubDetails = [
+    { subDetailKey: "masterData", subDetailName: "Master Data" },
+    { subDetailKey: "meetings", subDetailName: "Meetings" },
+    { subDetailKey: "filings", subDetailName: "Filings" },
+    { subDetailKey: "transfer", subDetailName: "Transfer" },
+    { subDetailKey: "certificates", subDetailName: "Certificates" },
+    { subDetailKey: "misc", subDetailName: "Misclleaneous" },
+  ];
+
   const [collapsed, updateCollapsed] = useState({
     pfcll: false,
     umpp: false,
@@ -98,7 +107,6 @@ function CompanyTree({
   return (
     <div className="tree-wrapper">
       <div className="org-tree">
-
         {/* =====================================================
             PFCCL
         ===================================================== */}
@@ -122,12 +130,10 @@ function CompanyTree({
             ================================================= */}
 
             <div className="division-stage">
-
               {/* One continuous horizontal line */}
               <div className="root-horizontal" />
 
               <div className="division-row">
-
                 {/* =================================================
                     UMPP
                 ================================================= */}
@@ -177,7 +183,6 @@ function CompanyTree({
                     />
                   )}
                 </div>
-
               </div>
             </div>
           </>
@@ -213,55 +218,22 @@ function CompanyTree({
           ===================================================== */}
 
           <div className="company-hover-popup-body">
-
-            {hoveredCompany.description && (
+            {/* {hoveredCompany.description && (
               <div className="company-detail">
-                <span className="company-detail-label">
-                  Description
-                </span>
+                <span className="company-detail-label">Description</span>
 
                 <span className="company-detail-value">
                   {hoveredCompany.description}
                 </span>
               </div>
-            )}
-
-            {hoveredCompany.division && (
-              <div className="company-detail">
-                <span className="company-detail-label">
-                  Division
-                </span>
-
-                <span className="company-detail-value">
-                  {hoveredCompany.division.toUpperCase()}
-                </span>
-              </div>
-            )}
-
-            {hoveredCompany.location && (
-              <div className="company-detail">
-                <span className="company-detail-label">
-                  Location
-                </span>
-
-                <span className="company-detail-value">
-                  {hoveredCompany.location}
-                </span>
-              </div>
-            )}
-
-            {hoveredCompany.website && (
-              <div className="company-detail">
-                <span className="company-detail-label">
-                  Website
-                </span>
-
-                <span className="company-detail-value">
-                  {hoveredCompany.website}
-                </span>
-              </div>
-            )}
-
+            )} */}
+            {companySubDetails.map((subDetail) => (
+              <li className="sub-detail-list-item" key={subDetail.subDetailKey}>
+                <div>
+                  <span>{subDetail.subDetailName}</span>
+                </div>
+              </li>
+            ))}
           </div>
         </div>
       )}
@@ -294,15 +266,10 @@ function CompanyList({
             className={`company-list-item ${
               company.id === selectedCompanyId ? "selected" : ""
             }`}
-            onMouseEnter={(event) =>
-              onCompanyMouseEnter(company, event)
-            }
+            onMouseEnter={(event) => onCompanyMouseEnter(company, event)}
             onMouseLeave={onCompanyMouseLeave}
           >
-            <span
-              className="company-name"
-              onClick={() => onSelect(company.id)}
-            >
+            <span className="company-name" onClick={() => onSelect(company.id)}>
               {company.name}
             </span>
 

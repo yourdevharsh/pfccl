@@ -462,6 +462,26 @@
   padding: 14px 16px;
 }
 
+.sub-detail-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 10px 14px;
+  margin: 5px 0px;
+
+  background: #fff;
+
+  border: 1px solid #ccc;
+  border-radius: 6px;
+
+  font-size: 14px;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
 /* =========================================================
    COMPANY DETAIL
 ========================================================= */
