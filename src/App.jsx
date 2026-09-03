@@ -8,55 +8,271 @@ const initialCompanies = [
     id: "ump-1",
     name: "Company A",
     division: "umpp",
-    cin: "",
-    pan: "",
-    gstin: "",
-    tan: "",
+    master: {
+      id: "ump-1-master",
+      cin: "",
+      pan: "",
+      gstin: "",
+      tan: "",
+      misc: {},
+    },
+    meetings: {
+      id: "",
+      bm: {
+        numberOfAgendas: 0,
+        minutes: {},
+      },
+      gm: {
+        egm: {},
+        agm: {},
+      },
+      misc: {},
+    },
+    filings: {
+      id: "",
+      roc: {
+        incorporation: {},
+        annualFilings: {},
+      },
+      misc: {},
+    },
+    transfer: {
+      id: "",
+      docs: {},
+      projectDetails: {},
+      transfereeDetails: {},
+      transfererDetails: {},
+      misc: {},
+    },
+    certificates: {
+      id: "",
+      misc: {},
+    },
   },
   {
     id: "ump-2",
     name: "Company B",
     division: "umpp",
-    cin: "",
-    pan: "",
-    gstin: "",
-    tan: "",
+    master: {
+      id: "",
+      cin: "",
+      pan: "",
+      gstin: "",
+      tan: "",
+      misc: {},
+    },
+    meetings: {
+      id: "",
+      bm: {
+        numberOfAgendas: 0,
+        minutes: {},
+      },
+      gm: {
+        egm: {},
+        agm: {},
+      },
+      misc: {},
+    },
+    filings: {
+      id: "",
+      roc: {
+        incorporation: {},
+        annualFilings: {},
+      },
+      misc: {},
+    },
+    transfer: {
+      id: "",
+      docs: {},
+      projectDetails: {},
+      transfereeDetails: {},
+      transfererDetails: {},
+      misc: {},
+    },
+    certificates: {
+      id: "",
+      misc: {},
+    },
   },
   {
     id: "ump-3",
     name: "Company C",
     division: "umpp",
-    cin: "",
-    pan: "",
-    gstin: "",
-    tan: "",
+    master: {
+      id: "",
+      cin: "",
+      pan: "",
+      gstin: "",
+      tan: "",
+      misc: {},
+    },
+    meetings: {
+      id: "",
+      bm: {
+        numberOfAgendas: 0,
+        minutes: {},
+      },
+      gm: {
+        egm: {},
+        agm: {},
+      },
+      misc: {},
+    },
+    filings: {
+      id: "",
+      roc: {
+        incorporation: {},
+        annualFilings: {},
+      },
+      misc: {},
+    },
+    transfer: {
+      id: "",
+      docs: {},
+      projectDetails: {},
+      transfereeDetails: {},
+      transfererDetails: {},
+      misc: {},
+    },
+    certificates: {
+      id: "",
+      misc: {},
+    },
   },
   {
     id: "itp-1",
     name: "Company A",
     division: "itp",
-    cin: "",
-    pan: "",
-    gstin: "",
-    tan: "",
+    master: {
+      id: "",
+      cin: "",
+      pan: "",
+      gstin: "",
+      tan: "",
+      misc: {},
+    },
+    meetings: {
+      id: "",
+      bm: {
+        numberOfAgendas: 0,
+        minutes: {},
+      },
+      gm: {
+        egm: {},
+        agm: {},
+      },
+      misc: {},
+    },
+    filings: {
+      id: "",
+      roc: {
+        incorporation: {},
+        annualFilings: {},
+      },
+      misc: {},
+    },
+    transfer: {
+      id: "",
+      docs: {},
+      projectDetails: {},
+      transfereeDetails: {},
+      transfererDetails: {},
+      misc: {},
+    },
+    certificates: {
+      id: "",
+      misc: {},
+    },
   },
   {
     id: "itp-2",
     name: "Company B",
     division: "itp",
-    cin: "",
-    pan: "",
-    gstin: "",
-    tan: "",
+    master: {
+      id: "",
+      cin: "",
+      pan: "",
+      gstin: "",
+      tan: "",
+      misc: {},
+    },
+    meetings: {
+      id: "",
+      bm: {
+        numberOfAgendas: 0,
+        minutes: {},
+      },
+      gm: {
+        egm: {},
+        agm: {},
+      },
+      misc: {},
+    },
+    filings: {
+      id: "",
+      roc: {
+        incorporation: {},
+        annualFilings: {},
+      },
+      misc: {},
+    },
+    transfer: {
+      id: "",
+      docs: {},
+      projectDetails: {},
+      transfereeDetails: {},
+      transfererDetails: {},
+      misc: {},
+    },
+    certificates: {
+      id: "",
+      misc: {},
+    },
   },
   {
     id: "itp-3",
     name: "Company C",
     division: "itp",
-    cin: "",
-    pan: "",
-    gstin: "",
-    tan: "",
+    master: {
+      id: "",
+      cin: "",
+      pan: "",
+      gstin: "",
+      tan: "",
+      misc: {},
+    },
+    meetings: {
+      id: "",
+      bm: {
+        numberOfAgendas: 0,
+        minutes: {},
+      },
+      gm: {
+        egm: {},
+        agm: {},
+      },
+      misc: {},
+    },
+    filings: {
+      id: "",
+      roc: {
+        incorporation: {},
+        annualFilings: {},
+      },
+      misc: {},
+    },
+    transfer: {
+      id: "",
+      docs: {},
+      projectDetails: {},
+      transfereeDetails: {},
+      transfererDetails: {},
+      misc: {},
+    },
+    certificates: {
+      id: "",
+      misc: {},
+    },
   },
 ];
 
@@ -91,7 +307,9 @@ function App() {
 
     if (!confirmed) return;
 
-    updateCompanies((current) => current.filter((item) => item.id !== companyId));
+    updateCompanies((current) =>
+      current.filter((item) => item.id !== companyId),
+    );
 
     if (selectedCompanyId === companyId) {
       updateSelectedCompanyId(null);
