@@ -1,0 +1,158 @@
+.tree-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+}
+
+.tree-node-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.tree-node-box {
+  position: relative;
+  width: 140px;
+  min-height: 48px;
+  padding: 8px 16px;
+  border: 2px solid #4b5563;
+  border-radius: 8px;
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  white-space: normal;
+}
+
+.tree-node-box:hover {
+  background: #f9fafb;
+}
+
+.tree-node.selected .tree-node-box {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgb(37 99 235 / 10%);
+}
+
+.tree-node-root .tree-node-box {
+  width: 180px;
+  min-height: 58px;
+  border-width: 3px;
+  font-size: 18px;
+}
+
+.tree-node-division .tree-node-box {
+  width: 150px;
+  min-height: 52px;
+  font-size: 15px;
+}
+
+.tree-node-company .tree-node-box {
+  width: 230px;
+  text-align: left;
+}
+
+.tree-node-subdetail .tree-node-box {
+  width: 210px;
+  min-height: 38px;
+  padding: 7px 12px;
+  border-width: 1px;
+  border-color: #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.tree-node-subdetail.selected .tree-node-box {
+  border-color: #2563eb;
+}
+
+.tree-node-children {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.tree-node-company > .tree-node-children::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 14px;
+  background: #94a3b8;
+  transform: translateX(-50%);
+}
+
+.tree-node-subdetail:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 2px;
+  height: 8px;
+  background: #cbd5e1;
+  transform: translateX(-50%);
+}
+
+.tree-collapse,
+.tree-action {
+  position: absolute;
+  z-index: 3;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #b7bec8;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.tree-collapse {
+  left: -34px;
+  top: 50%;
+  color: #374151;
+  transform: translateY(-50%);
+}
+
+.tree-add {
+  right: -34px;
+  top: 50%;
+  color: #15803d;
+  font-size: 15px;
+  transform: translateY(-50%);
+}
+
+.tree-delete {
+  right: -34px;
+  top: 50%;
+  color: #dc2626;
+  font-size: 17px;
+  transform: translateY(-50%);
+}
+
+.tree-collapse:hover {
+  background: #f3f4f6;
+}
+
+.tree-add:hover {
+  background: #f0fdf4;
+}
+
+.tree-delete:hover {
+  background: #fef2f2;
+}

@@ -1,8 +1,10 @@
+import "./treeNode.css";
+
 function TreeNode({
   type,
   name,
-  collapsed,
-  selected,
+  selected = false,
+  collapsed = false,
   onToggle,
   onSelect,
   onAdd,
@@ -12,26 +14,35 @@ function TreeNode({
   const hasChildren = children !== undefined;
 
   return (
-    <div
-      className={`tree-node tree-node-${type} ${selected ? "selected" : ""}`}
-    >
+    <div className={`tree-node tree-node-${type} ${selected ? "selected" : ""}`}>
       <div className="tree-node-content">
         {hasChildren && (
-          <button type="button" className="tree-collapse" onClick={onToggle}>
+          <button
+            type="button"
+            className="tree-collapse"
+            onClick={onToggle}
+            aria-label={`${collapsed ? "Expand" : "Collapse"} ${name}`}
+          >
             {collapsed ? "+" : "−"}
           </button>
         )}
 
-        <button type="button" className="tree-node-box" onClick={onSelect}>
+        <button
+          type="button"
+          className="tree-node-box"
+          onClick={onSelect}
+          aria-current={selected ? "true" : undefined}
+        >
           {name}
         </button>
 
         {type === "division" && (
           <button
             type="button"
-            className="tree-add"
+            className="tree-action tree-add"
             onClick={onAdd}
-            title="Add company"
+            title={`Add ${name} company`}
+            aria-label={`Add ${name} company`}
           >
             +
           </button>
@@ -40,9 +51,10 @@ function TreeNode({
         {type === "company" && (
           <button
             type="button"
-            className="tree-delete"
+            className="tree-action tree-delete"
             onClick={onDelete}
             title="Delete company"
+            aria-label={`Delete ${name}`}
           >
             ×
           </button>

@@ -1,0 +1,80 @@
+.file-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.file-field-label {
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.file-field-control {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.file-upload-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.file-upload-button:hover {
+  background: #f1f5f9;
+}
+
+.file-upload-button input {
+  display: none;
+}
+
+.file-field-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.file-field-name.has-file {
+  color: #475569;
+}
+
+.file-field-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.file-field-actions button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+}
+
+.file-field-actions button:hover {
+  background: #f1f5f9;
+}

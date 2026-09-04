@@ -1,45 +1,32 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import TreeNode from "./TreeNode";
+import {
+  COMPANY_SUB_DETAILS,
+  DIVISIONS,
+  ROOT_NODE,
+  getSubDetailId,
+} from "../../config/treeConfig";
 import "./companyTree.css";
 
 function CompanyTree({
   companies,
-  selectedCompanyId,
+  selectedNodeId,
   onSelect,
   onAddCompany,
   onDeleteCompany,
 }) {
-  const companySubDetails = [
-    { subDetailKey: "masterData", subDetailName: "Master Data" },
-    { subDetailKey: "meetings", subDetailName: "Meetings" },
-    { subDetailKey: "filings", subDetailName: "Filings" },
-    { subDetailKey: "transfer", subDetailName: "Transfer" },
-    { subDetailKey: "certificates", subDetailName: "Certificates" },
-    { subDetailKey: "misc", subDetailName: "Misclleaneous" },
-  ];
-
-  const [collapsed, updateCollapsed] = useState({
-    pfcll: false,
-    umpp: false,
-    itp: false,
-  });
-
-  // =========================================================
-  // COMPANY HOVER POPUP STATE
-  // =========================================================
-
+  const [collapsed, updateCollapsed] = useState({});
   const [hoveredCompany, setHoveredCompany] = useState(null);
-
-  const [popupPosition, setPopupPosition] = useState({
-    top: 0,
-    left: 0,
-  });
-
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   const hidePopupTimer = useRef(null);
 
-  // =========================================================
-  // COLLAPSE
-  // =========================================================
+  useEffect(() => {
+    return () => {
+      if (hidePopupTimer.current) {
+        clearTimeout(hidePopupTimer.current);
+      }
+    };
+  }, []);
 
   function toggleNode(id) {
     updateCollapsed((current) => ({
@@ -48,30 +35,30 @@ function CompanyTree({
     }));
   }
 
-  // =========================================================
-  // COMPANY HOVER
-  // =========================================================
-
-  function handleCompanyMouseEnter(company, event) {
-    // Cancel pending popup hide
+  function cancelPopupHide() {
     if (hidePopupTimer.current) {
       clearTimeout(hidePopupTimer.current);
       hidePopupTimer.current = null;
     }
+  }
+
+  function handleCompanyMouseEnter(company, event) {
+    cancelPopupHide();
 
     const rect = event.currentTarget.getBoundingClientRect();
 
     setHoveredCompany(company);
-
     setPopupPosition({
       top: rect.top,
-      left: rect.right + 6,
+      left: rect.right + 8,
     });
   }
 
   function handleCompanyMouseLeave() {
-    // Don't immediately hide.
-    // Give the user a moment to move into the popup.
+    cancelPopupHide();
+
+    // Keep the popup open briefly so the pointer can move from
+    // the company row into the popup without closing it.
     hidePopupTimer.current = setTimeout(() => {
       setHoveredCompany(null);
       hidePopupTimer.current = null;
@@ -79,121 +66,116 @@ function CompanyTree({
   }
 
   function handlePopupMouseEnter() {
-    // User successfully reached the popup.
-    // Cancel the pending hide.
-    if (hidePopupTimer.current) {
-      clearTimeout(hidePopupTimer.current);
-      hidePopupTimer.current = null;
-    }
+    cancelPopupHide();
   }
 
   function handlePopupMouseLeave() {
-    // User left the popup.
+    cancelPopupHide();
     setHoveredCompany(null);
   }
 
-  // =========================================================
-  // COMPANIES
-  // =========================================================
+  function selectSubDetail(companyId, subDetailKey) {
+    cancelPopupHide();
+    onSelect(getSubDetailId(companyId, subDetailKey));
+  }
 
-  const umppCompanies = companies.filter(
-    (company) => company.division === "umpp",
-  );
+  function renderCompany(company) {
+    return (
+      <li
+        key={company.id}
+        className={`company-list-item ${
+          selectedNodeId === company.id ? "selected" : ""
+        }`}
+        onMouseEnter={(event) => handleCompanyMouseEnter(company, event)}
+        onMouseLeave={handleCompanyMouseLeave}
+      >
+        <button
+          type="button"
+          className="company-name"
+          onClick={() => onSelect(company.id)}
+          aria-current={selectedNodeId === company.id ? "true" : undefined}
+        >
+          {company.name}
+        </button>
 
-  const itpCompanies = companies.filter(
-    (company) => company.division === "itp",
-  );
+        <button
+          type="button"
+          className="company-list-delete"
+          onClick={(event) => {
+            event.stopPropagation();
+            cancelPopupHide();
+            onDeleteCompany(company.id);
+          }}
+          title="Delete company"
+          aria-label={`Delete ${company.name}`}
+        >
+          ×
+        </button>
+      </li>
+    );
+  }
 
   return (
     <div className="tree-wrapper">
       <div className="org-tree">
-        {/* =====================================================
-            PFCCL
-        ===================================================== */}
-
         <div className="root-row">
           <TreeNode
             type="root"
-            name="PFCCL"
-            collapsed={collapsed.pfcll}
-            onToggle={() => toggleNode("pfcll")}
+            name={ROOT_NODE.name}
+            selected={selectedNodeId === ROOT_NODE.id}
+            collapsed={Boolean(collapsed[ROOT_NODE.id])}
+            onToggle={() => toggleNode(ROOT_NODE.id)}
+            onSelect={() => onSelect(ROOT_NODE.id)}
           />
         </div>
 
-        {!collapsed.pfcll && (
+        {!collapsed[ROOT_NODE.id] && (
           <>
-            {/* PFCCL vertical line */}
             <div className="root-drop" />
 
-            {/* =================================================
-                UMPP + ITP AREA
-            ================================================= */}
-
             <div className="division-stage">
-              {/* One continuous horizontal line */}
               <div className="root-horizontal" />
 
               <div className="division-row">
-                {/* =================================================
-                    UMPP
-                ================================================= */}
+                {DIVISIONS.map((division) => {
+                  const divisionCompanies = companies.filter(
+                    (company) => company.division === division.id,
+                  );
+                  const divisionCollapsed = Boolean(collapsed[division.id]);
 
-                <div className="division-branch">
-                  <TreeNode
-                    type="division"
-                    name="UMPP"
-                    collapsed={collapsed.umpp}
-                    onToggle={() => toggleNode("umpp")}
-                    onAdd={() => onAddCompany("umpp")}
-                  />
+                  return (
+                    <div className="division-branch" key={division.id}>
+                      <TreeNode
+                        type="division"
+                        name={division.name}
+                        selected={selectedNodeId === division.id}
+                        collapsed={divisionCollapsed}
+                        onToggle={() => toggleNode(division.id)}
+                        onSelect={() => onSelect(division.id)}
+                        onAdd={() => onAddCompany(division.id)}
+                      />
 
-                  {!collapsed.umpp && (
-                    <CompanyList
-                      companies={umppCompanies}
-                      selectedCompanyId={selectedCompanyId}
-                      onSelect={onSelect}
-                      onDeleteCompany={onDeleteCompany}
-                      onCompanyMouseEnter={handleCompanyMouseEnter}
-                      onCompanyMouseLeave={handleCompanyMouseLeave}
-                    />
-                  )}
-                </div>
-
-                {/* =================================================
-                    ITP
-                ================================================= */}
-
-                <div className="division-branch">
-                  <TreeNode
-                    type="division"
-                    name="ITP"
-                    collapsed={collapsed.itp}
-                    onToggle={() => toggleNode("itp")}
-                    onAdd={() => onAddCompany("itp")}
-                  />
-
-                  {!collapsed.itp && (
-                    <CompanyList
-                      companies={itpCompanies}
-                      selectedCompanyId={selectedCompanyId}
-                      onSelect={onSelect}
-                      onDeleteCompany={onDeleteCompany}
-                      onCompanyMouseEnter={handleCompanyMouseEnter}
-                      onCompanyMouseLeave={handleCompanyMouseLeave}
-                    />
-                  )}
-                </div>
+                      {!divisionCollapsed && (
+                        <div className="company-list-wrapper">
+                          {divisionCompanies.length === 0 ? (
+                            <div className="empty-company-state">
+                              No companies yet
+                            </div>
+                          ) : (
+                            <ul className="company-list">
+                              {divisionCompanies.map(renderCompany)}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </>
         )}
       </div>
-
-      {/* =========================================================
-          SINGLE SHARED COMPANY POPUP
-
-          This is intentionally OUTSIDE the company <ul>.
-      ========================================================= */}
 
       {hoveredCompany && (
         <div
@@ -205,85 +187,35 @@ function CompanyTree({
           onMouseEnter={handlePopupMouseEnter}
           onMouseLeave={handlePopupMouseLeave}
         >
-          {/* =====================================================
-              POPUP HEADER
-          ===================================================== */}
-
           <div className="company-hover-popup-header">
             <h3>{hoveredCompany.name}</h3>
           </div>
 
-          {/* =====================================================
-              POPUP BODY
-          ===================================================== */}
-
           <div className="company-hover-popup-body">
-            {/* {hoveredCompany.description && (
-              <div className="company-detail">
-                <span className="company-detail-label">Description</span>
+            {COMPANY_SUB_DETAILS.map((subDetail) => {
+              const nodeId = getSubDetailId(
+                hoveredCompany.id,
+                subDetail.key,
+              );
 
-                <span className="company-detail-value">
-                  {hoveredCompany.description}
-                </span>
-              </div>
-            )} */}
-            {companySubDetails.map((subDetail) => (
-              <li className="sub-detail-list-item" key={subDetail.subDetailKey}>
-                <div>
-                  <span>{subDetail.subDetailName}</span>
-                </div>
-              </li>
-            ))}
+              return (
+                <button
+                  type="button"
+                  className={`sub-detail-list-item ${
+                    selectedNodeId === nodeId ? "selected" : ""
+                  }`}
+                  key={nodeId}
+                  onClick={() =>
+                    selectSubDetail(hoveredCompany.id, subDetail.key)
+                  }
+                >
+                  {subDetail.name}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-/* =========================================================
-   COMPANY LIST
-========================================================= */
-
-function CompanyList({
-  companies,
-  selectedCompanyId,
-  onSelect,
-  onDeleteCompany,
-  onCompanyMouseEnter,
-  onCompanyMouseLeave,
-}) {
-  if (companies.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="company-list-wrapper">
-      <ul className="company-list">
-        {companies.map((company) => (
-          <li
-            key={company.id}
-            className={`company-list-item ${
-              company.id === selectedCompanyId ? "selected" : ""
-            }`}
-            onMouseEnter={(event) => onCompanyMouseEnter(company, event)}
-            onMouseLeave={onCompanyMouseLeave}
-          >
-            <span className="company-name" onClick={() => onSelect(company.id)}>
-              {company.name}
-            </span>
-
-            <button
-              type="button"
-              className="company-list-delete"
-              onClick={() => onDeleteCompany(company.id)}
-              title="Delete company"
-            >
-              ×
-            </button>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

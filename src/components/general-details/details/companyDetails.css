@@ -1,0 +1,33 @@
+.company-module-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.company-module-card {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.company-module-card:hover {
+  border-color: #93c5fd;
+  background: #f8fbff;
+}
+
+@media (max-width: 700px) {
+  .company-module-grid {
+    grid-template-columns: 1fr;
+  }
+}

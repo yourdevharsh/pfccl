@@ -1,301 +1,25 @@
 import { useState } from "react";
 import CompanyTree from "./components/company-tree/CompanyTree";
-import CompanyDetails from "./components/company/CompanyDetails";
+import GeneralDetails from "./components/general-details/GeneralDetails";
+import { getNextCompanyId } from "./config/treeConfig";
+import { createCompanyRecord, initialCompanies } from "./data/initialData";
 import "./App.css";
-
-const initialCompanies = [
-  {
-    id: "ump-1",
-    name: "Company A",
-    division: "umpp",
-    master: {
-      id: "ump-1-master",
-      cin: "",
-      pan: "",
-      gstin: "",
-      tan: "",
-      misc: {},
-    },
-    meetings: {
-      id: "",
-      bm: {
-        numberOfAgendas: 0,
-        minutes: {},
-      },
-      gm: {
-        egm: {},
-        agm: {},
-      },
-      misc: {},
-    },
-    filings: {
-      id: "",
-      roc: {
-        incorporation: {},
-        annualFilings: {},
-      },
-      misc: {},
-    },
-    transfer: {
-      id: "",
-      docs: {},
-      projectDetails: {},
-      transfereeDetails: {},
-      transfererDetails: {},
-      misc: {},
-    },
-    certificates: {
-      id: "",
-      misc: {},
-    },
-  },
-  {
-    id: "ump-2",
-    name: "Company B",
-    division: "umpp",
-    master: {
-      id: "",
-      cin: "",
-      pan: "",
-      gstin: "",
-      tan: "",
-      misc: {},
-    },
-    meetings: {
-      id: "",
-      bm: {
-        numberOfAgendas: 0,
-        minutes: {},
-      },
-      gm: {
-        egm: {},
-        agm: {},
-      },
-      misc: {},
-    },
-    filings: {
-      id: "",
-      roc: {
-        incorporation: {},
-        annualFilings: {},
-      },
-      misc: {},
-    },
-    transfer: {
-      id: "",
-      docs: {},
-      projectDetails: {},
-      transfereeDetails: {},
-      transfererDetails: {},
-      misc: {},
-    },
-    certificates: {
-      id: "",
-      misc: {},
-    },
-  },
-  {
-    id: "ump-3",
-    name: "Company C",
-    division: "umpp",
-    master: {
-      id: "",
-      cin: "",
-      pan: "",
-      gstin: "",
-      tan: "",
-      misc: {},
-    },
-    meetings: {
-      id: "",
-      bm: {
-        numberOfAgendas: 0,
-        minutes: {},
-      },
-      gm: {
-        egm: {},
-        agm: {},
-      },
-      misc: {},
-    },
-    filings: {
-      id: "",
-      roc: {
-        incorporation: {},
-        annualFilings: {},
-      },
-      misc: {},
-    },
-    transfer: {
-      id: "",
-      docs: {},
-      projectDetails: {},
-      transfereeDetails: {},
-      transfererDetails: {},
-      misc: {},
-    },
-    certificates: {
-      id: "",
-      misc: {},
-    },
-  },
-  {
-    id: "itp-1",
-    name: "Company A",
-    division: "itp",
-    master: {
-      id: "",
-      cin: "",
-      pan: "",
-      gstin: "",
-      tan: "",
-      misc: {},
-    },
-    meetings: {
-      id: "",
-      bm: {
-        numberOfAgendas: 0,
-        minutes: {},
-      },
-      gm: {
-        egm: {},
-        agm: {},
-      },
-      misc: {},
-    },
-    filings: {
-      id: "",
-      roc: {
-        incorporation: {},
-        annualFilings: {},
-      },
-      misc: {},
-    },
-    transfer: {
-      id: "",
-      docs: {},
-      projectDetails: {},
-      transfereeDetails: {},
-      transfererDetails: {},
-      misc: {},
-    },
-    certificates: {
-      id: "",
-      misc: {},
-    },
-  },
-  {
-    id: "itp-2",
-    name: "Company B",
-    division: "itp",
-    master: {
-      id: "",
-      cin: "",
-      pan: "",
-      gstin: "",
-      tan: "",
-      misc: {},
-    },
-    meetings: {
-      id: "",
-      bm: {
-        numberOfAgendas: 0,
-        minutes: {},
-      },
-      gm: {
-        egm: {},
-        agm: {},
-      },
-      misc: {},
-    },
-    filings: {
-      id: "",
-      roc: {
-        incorporation: {},
-        annualFilings: {},
-      },
-      misc: {},
-    },
-    transfer: {
-      id: "",
-      docs: {},
-      projectDetails: {},
-      transfereeDetails: {},
-      transfererDetails: {},
-      misc: {},
-    },
-    certificates: {
-      id: "",
-      misc: {},
-    },
-  },
-  {
-    id: "itp-3",
-    name: "Company C",
-    division: "itp",
-    master: {
-      id: "",
-      cin: "",
-      pan: "",
-      gstin: "",
-      tan: "",
-      misc: {},
-    },
-    meetings: {
-      id: "",
-      bm: {
-        numberOfAgendas: 0,
-        minutes: {},
-      },
-      gm: {
-        egm: {},
-        agm: {},
-      },
-      misc: {},
-    },
-    filings: {
-      id: "",
-      roc: {
-        incorporation: {},
-        annualFilings: {},
-      },
-      misc: {},
-    },
-    transfer: {
-      id: "",
-      docs: {},
-      projectDetails: {},
-      transfereeDetails: {},
-      transfererDetails: {},
-      misc: {},
-    },
-    certificates: {
-      id: "",
-      misc: {},
-    },
-  },
-];
 
 function App() {
   const [companies, updateCompanies] = useState(initialCompanies);
-  const [selectedCompanyId, updateSelectedCompanyId] = useState(null);
-
-  const selectedCompany =
-    companies.find((company) => company.id === selectedCompanyId) || null;
+  const [selectedNodeId, updateSelectedNodeId] = useState("pfccl");
 
   function addCompany(division) {
-    const newCompany = {
-      id: crypto.randomUUID(),
-      name: "New Company",
+    const id = getNextCompanyId(companies, division);
+    const companyNumber = Number(id.split("-")[1]);
+    const newCompany = createCompanyRecord({
+      id,
+      name: `New Company ${companyNumber}`,
       division,
-      cin: "",
-      pan: "",
-      gstin: "",
-      tan: "",
-    };
+    });
 
     updateCompanies((current) => [...current, newCompany]);
-    updateSelectedCompanyId(newCompany.id);
+    updateSelectedNodeId(newCompany.id);
   }
 
   function deleteCompany(companyId) {
@@ -311,51 +35,47 @@ function App() {
       current.filter((item) => item.id !== companyId),
     );
 
-    if (selectedCompanyId === companyId) {
-      updateSelectedCompanyId(null);
+    if (
+      selectedNodeId === companyId ||
+      selectedNodeId.startsWith(`${companyId}-`)
+    ) {
+      updateSelectedNodeId(company.division);
     }
   }
 
   return (
     <div className="app">
-      {/* HEADER */}
       <header className="app-header">
         <div className="brand">
-          <div className="brand-mark">PF</div>
+          <div className="brand-mark" aria-hidden="true">
+            PF
+          </div>
 
           <div>
             <div className="brand-name">PFCCL</div>
-
             <div className="brand-subtitle">Subsidiaries Repo</div>
           </div>
         </div>
       </header>
 
-      {/* TREE */}
       <main className="app-main">
-        <section className="tree-section">
+        <section className="tree-section" aria-label="Application tree">
           <CompanyTree
             companies={companies}
-            selectedCompanyId={selectedCompanyId}
-            onSelect={updateSelectedCompanyId}
+            selectedNodeId={selectedNodeId}
+            onSelect={updateSelectedNodeId}
             onAddCompany={addCompany}
             onDeleteCompany={deleteCompany}
           />
         </section>
 
-        {/* DETAILS */}
-        <section className="details-section">
-          {selectedCompany ? (
-            <CompanyDetails
-              company={selectedCompany}
-              updateCompanies={updateCompanies}
-            />
-          ) : (
-            <div className="details-placeholder">
-              <h2>Company Details</h2>
-              <p>Select a company from the tree above to view its details.</p>
-            </div>
-          )}
+        <section className="details-section" aria-label="General details">
+          <GeneralDetails
+            selectedNodeId={selectedNodeId}
+            companies={companies}
+            updateCompanies={updateCompanies}
+            onSelect={updateSelectedNodeId}
+          />
         </section>
       </main>
     </div>

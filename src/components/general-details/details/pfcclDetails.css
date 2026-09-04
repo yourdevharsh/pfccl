@@ -1,0 +1,13 @@
+.pfccl-stat-button {
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pfccl-stat-button:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
