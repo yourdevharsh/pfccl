@@ -1,25 +1,28 @@
+import FileField from "../components/FileField";
 import { updateCompany } from "../../../utils/companyUpdates";
 import "./filingsDetails.css";
 
-function FilingsDetails({ company, updateCompanies }) {
+const FILING_FIELDS = [
+  ["roc", "incorporation", "Incorporation"],
+  ["roc", "annualFilings", "Annual Filings"],
+  ["misc", "files", "Miscellaneous"],
+];
+
+function FilingsDetails({ company, updateCompanies, onOpenFile }) {
   const filings = company.filings ?? {};
 
-  function updateFilings(updater) {
+  function updateFiling(section, field, value) {
     updateCompany(updateCompanies, company.id, (current) => ({
       ...current,
-      filings: updater(current.filings ?? {}),
-    }));
-  }
-
-  function updateRoc(field, value) {
-    updateFilings((current) => ({
-      ...current,
-      roc: {
-        ...(current.roc ?? {}),
-        [field]: {
-          ...(current.roc?.[field] ?? {}),
-          notes: value,
-        },
+      filings: {
+        ...(current.filings ?? {}),
+        [section]:
+          field === "files"
+            ? value
+            : {
+                ...(current.filings?.[section] ?? {}),
+                files: value,
+              },
       },
     }));
   }
@@ -33,40 +36,22 @@ function FilingsDetails({ company, updateCompanies }) {
       </div>
 
       <div className="detail-card">
-        <h3 className="detail-card-title">ROC Filings</h3>
+        <h3 className="detail-card-title">Filing Documents</h3>
         <div className="detail-form-grid">
-          <div className="detail-field full-width">
-            <label htmlFor="filings-incorporation">Incorporation</label>
-            <textarea
-              id="filings-incorporation"
-              value={filings.roc?.incorporation?.notes ?? ""}
-              onChange={(event) => updateRoc("incorporation", event.target.value)}
-            />
-          </div>
-          <div className="detail-field full-width">
-            <label htmlFor="filings-annual">Annual Filings</label>
-            <textarea
-              id="filings-annual"
-              value={filings.roc?.annualFilings?.notes ?? ""}
-              onChange={(event) => updateRoc("annualFilings", event.target.value)}
-            />
-          </div>
-          <div className="detail-field full-width">
-            <label htmlFor="filings-misc">Miscellaneous</label>
-            <textarea
-              id="filings-misc"
-              value={filings.misc?.notes ?? ""}
-              onChange={(event) =>
-                updateFilings((current) => ({
-                  ...current,
-                  misc: {
-                    ...(current.misc ?? {}),
-                    notes: event.target.value,
-                  },
-                }))
-              }
-            />
-          </div>
+          {FILING_FIELDS.map(([section, field, label]) => (
+            <div className="detail-field full-width" key={`${section}-${field}`}>
+              <FileField
+                label={label}
+                value={
+                  field === "files"
+                    ? filings[section] ?? []
+                    : filings[section]?.[field]?.files ?? []
+                }
+                onChange={(value) => updateFiling(section, field, value)}
+                onOpenFile={onOpenFile}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>

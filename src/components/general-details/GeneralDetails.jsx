@@ -15,18 +15,14 @@ function GeneralDetails({
   companies,
   updateCompanies,
   onSelect,
+  onOpenFile,
 }) {
   const selection = resolveSelection(selectedNodeId, companies);
 
   function renderSelectedComponent() {
     switch (selection.type) {
       case "root":
-        return (
-          <PfcclDetails
-            companies={companies}
-            onSelect={onSelect}
-          />
-        );
+        return <PfcclDetails companies={companies} onSelect={onSelect} />;
 
       case "division":
         return (
@@ -50,6 +46,7 @@ function GeneralDetails({
         const props = {
           company: selection.company,
           updateCompanies,
+          onOpenFile,
         };
 
         switch (selection.detailKey) {

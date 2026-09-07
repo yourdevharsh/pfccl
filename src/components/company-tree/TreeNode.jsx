@@ -5,13 +5,13 @@ function TreeNode({
   name,
   selected = false,
   collapsed = false,
+  hasToggle = false,
   onToggle,
   onSelect,
   onAdd,
-  onDelete,
   children,
 }) {
-  const hasChildren = children !== undefined;
+  const hasChildren = hasToggle || children !== undefined;
 
   return (
     <div className={`tree-node tree-node-${type} ${selected ? "selected" : ""}`}>
@@ -45,18 +45,6 @@ function TreeNode({
             aria-label={`Add ${name} company`}
           >
             +
-          </button>
-        )}
-
-        {type === "company" && (
-          <button
-            type="button"
-            className="tree-action tree-delete"
-            onClick={onDelete}
-            title="Delete company"
-            aria-label={`Delete ${name}`}
-          >
-            ×
           </button>
         )}
       </div>

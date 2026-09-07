@@ -1,7 +1,14 @@
 .file-field {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
+}
+
+.file-field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .file-field-label {
@@ -10,63 +17,76 @@
   font-weight: 600;
 }
 
-.file-field-control {
-  min-height: 46px;
+.file-field-count {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.file-field-list {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 8px;
+  flex-direction: column;
+  gap: 7px;
+  padding: 7px;
   border: 1px solid #cbd5e1;
-  border-radius: 7px;
+  border-radius: 8px;
   background: #fff;
 }
 
-.file-upload-button {
-  display: inline-flex;
-  flex: 0 0 auto;
+.file-entry {
+  min-height: 38px;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 32px;
-  padding: 0 11px;
-  border: 1px solid #cbd5e1;
-  border-radius: 5px;
+  gap: 8px;
+  padding: 3px 5px 3px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   background: #f8fafc;
+}
+
+.file-entry-name {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
   color: #334155;
   font-size: 12px;
-  font-weight: 600;
+  text-align: left;
   cursor: pointer;
 }
 
-.file-upload-button:hover {
-  background: #f1f5f9;
-}
-
-.file-upload-button input {
-  display: none;
-}
-
-.file-field-name {
-  min-width: 0;
+.file-entry-name span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #94a3b8;
-  font-size: 12px;
 }
 
-.file-field-name.has-file {
-  color: #475569;
+.file-entry-name:hover {
+  color: #1d4ed8;
 }
 
-.file-field-actions {
+.file-entry-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #64748b;
+}
+
+.file-entry-actions {
   display: flex;
-  gap: 4px;
-  margin-left: auto;
+  gap: 2px;
+  flex: 0 0 auto;
 }
 
-.file-field-actions button {
-  width: 28px;
-  height: 28px;
+.file-icon-button {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
   padding: 0;
   border: 0;
   border-radius: 5px;
@@ -75,6 +95,49 @@
   cursor: pointer;
 }
 
-.file-field-actions button:hover {
-  background: #f1f5f9;
+.file-icon-button:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.file-icon-button.danger:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.file-icon-button svg,
+.file-add-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.file-add-row {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px dashed #b7c1cc;
+  border-radius: 6px;
+  background: #fff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.file-add-row:hover {
+  border-color: #2563eb;
+  background: #f8fbff;
+  color: #1d4ed8;
+}
+
+.file-add-row input {
+  display: none;
 }

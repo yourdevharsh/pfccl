@@ -1,7 +1,8 @@
+import FileField from "../components/FileField";
 import { updateCompany } from "../../../utils/companyUpdates";
 import "./meetingsDetails.css";
 
-function MeetingsDetails({ company, updateCompanies }) {
+function MeetingsDetails({ company, updateCompanies, onOpenFile }) {
   const meetings = company.meetings ?? {};
 
   function updateMeetings(updater) {
@@ -11,7 +12,7 @@ function MeetingsDetails({ company, updateCompanies }) {
     }));
   }
 
-  function updateNotes(path, value) {
+  function updateFiles(path, value) {
     updateMeetings((current) => {
       const [section, field] = path;
       return {
@@ -20,11 +21,21 @@ function MeetingsDetails({ company, updateCompanies }) {
           ...(current[section] ?? {}),
           [field]: {
             ...(current[section]?.[field] ?? {}),
-            notes: value,
+            files: value,
           },
         },
       };
     });
+  }
+
+  function updateMiscFiles(value) {
+    updateMeetings((current) => ({
+      ...current,
+      misc: {
+        ...(current.misc ?? {}),
+        files: value,
+      },
+    }));
   }
 
   return (
@@ -39,30 +50,29 @@ function MeetingsDetails({ company, updateCompanies }) {
         <h3 className="detail-card-title">Board Meetings</h3>
         <div className="detail-form-grid">
           <div className="detail-field">
-            <label htmlFor="meeting-agendas">Number of Agendas</label>
+            <label htmlFor={`meeting-count-${company.id}`}>Number of Meetings</label>
             <input
-              id="meeting-agendas"
+              id={`meeting-count-${company.id}`}
               type="number"
               min="0"
-              value={meetings.bm?.numberOfAgendas ?? 0}
+              value={meetings.bm?.numberOfMeetings ?? 0}
               onChange={(event) =>
                 updateMeetings((current) => ({
                   ...current,
                   bm: {
                     ...(current.bm ?? {}),
-                    numberOfAgendas: Number(event.target.value),
+                    numberOfMeetings: Number(event.target.value),
                   },
                 }))
               }
             />
           </div>
           <div className="detail-field full-width">
-            <label htmlFor="meeting-minutes">Minutes / Notes</label>
-            <textarea
-              id="meeting-minutes"
-              value={meetings.bm?.minutes?.notes ?? ""}
-              onChange={(event) => updateNotes(["bm", "minutes"], event.target.value)}
-              placeholder="Enter board meeting minutes or a reference to stored minutes."
+            <FileField
+              label="Minutes / Notes"
+              value={meetings.bm?.minutes?.files ?? []}
+              onChange={(value) => updateFiles(["bm", "minutes"], value)}
+              onOpenFile={onOpenFile}
             />
           </div>
         </div>
@@ -72,35 +82,27 @@ function MeetingsDetails({ company, updateCompanies }) {
         <h3 className="detail-card-title">General Meetings</h3>
         <div className="detail-form-grid">
           <div className="detail-field full-width">
-            <label htmlFor="meeting-egm">EGM</label>
-            <textarea
-              id="meeting-egm"
-              value={meetings.gm?.egm?.notes ?? ""}
-              onChange={(event) => updateNotes(["gm", "egm"], event.target.value)}
+            <FileField
+              label="EGM"
+              value={meetings.gm?.egm?.files ?? []}
+              onChange={(value) => updateFiles(["gm", "egm"], value)}
+              onOpenFile={onOpenFile}
             />
           </div>
           <div className="detail-field full-width">
-            <label htmlFor="meeting-agm">AGM</label>
-            <textarea
-              id="meeting-agm"
-              value={meetings.gm?.agm?.notes ?? ""}
-              onChange={(event) => updateNotes(["gm", "agm"], event.target.value)}
+            <FileField
+              label="AGM"
+              value={meetings.gm?.agm?.files ?? []}
+              onChange={(value) => updateFiles(["gm", "agm"], value)}
+              onOpenFile={onOpenFile}
             />
           </div>
           <div className="detail-field full-width">
-            <label htmlFor="meeting-misc">Miscellaneous</label>
-            <textarea
-              id="meeting-misc"
-              value={meetings.misc?.notes ?? ""}
-              onChange={(event) =>
-                updateMeetings((current) => ({
-                  ...current,
-                  misc: {
-                    ...(current.misc ?? {}),
-                    notes: event.target.value,
-                  },
-                }))
-              }
+            <FileField
+              label="Miscellaneous"
+              value={meetings.misc?.files ?? []}
+              onChange={updateMiscFiles}
+              onOpenFile={onOpenFile}
             />
           </div>
         </div>

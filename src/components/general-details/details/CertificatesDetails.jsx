@@ -10,7 +10,7 @@ const CERTIFICATE_FIELDS = [
   ["espf", "ESPF"],
 ];
 
-function CertificatesDetails({ company, updateCompanies }) {
+function CertificatesDetails({ company, updateCompanies, onOpenFile }) {
   const certificates = company.certificates ?? {};
 
   function updateCertificate(field, value) {
@@ -38,8 +38,9 @@ function CertificatesDetails({ company, updateCompanies }) {
             <FileField
               key={field}
               label={label}
-              value={certificates[field] ?? null}
+              value={certificates[field] ?? []}
               onChange={(value) => updateCertificate(field, value)}
+              onOpenFile={onOpenFile}
             />
           ))}
         </div>

@@ -1,3 +1,4 @@
+import FileField from "../components/FileField";
 import { updateCompany } from "../../../utils/companyUpdates";
 import "./transferDetails.css";
 
@@ -9,7 +10,7 @@ const TRANSFER_SECTIONS = [
   ["misc", "Miscellaneous"],
 ];
 
-function TransferDetails({ company, updateCompanies }) {
+function TransferDetails({ company, updateCompanies, onOpenFile }) {
   const transfer = company.transfer ?? {};
 
   function updateTransferField(field, value) {
@@ -19,7 +20,7 @@ function TransferDetails({ company, updateCompanies }) {
         ...(current.transfer ?? {}),
         [field]: {
           ...(current.transfer?.[field] ?? {}),
-          notes: value,
+          files: value,
         },
       },
     }));
@@ -38,11 +39,11 @@ function TransferDetails({ company, updateCompanies }) {
         <div className="detail-form-grid">
           {TRANSFER_SECTIONS.map(([field, label]) => (
             <div className="detail-field full-width" key={field}>
-              <label htmlFor={`transfer-${field}`}>{label}</label>
-              <textarea
-                id={`transfer-${field}`}
-                value={transfer[field]?.notes ?? ""}
-                onChange={(event) => updateTransferField(field, event.target.value)}
+              <FileField
+                label={label}
+                value={transfer[field]?.files ?? []}
+                onChange={(value) => updateTransferField(field, value)}
+                onOpenFile={onOpenFile}
               />
             </div>
           ))}

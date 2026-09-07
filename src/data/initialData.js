@@ -1,8 +1,9 @@
-export function createCompanyRecord({ id, name, division }) {
+export function createCompanyRecord({ id, name, division, incorporationDate }) {
   return {
     id,
     name,
     division,
+    incorporationDate: incorporationDate ?? new Date().toISOString().slice(0, 10),
     master: {
       id: `${id}-master-data`,
       cin: "",
@@ -14,38 +15,38 @@ export function createCompanyRecord({ id, name, division }) {
     meetings: {
       id: `${id}-meetings`,
       bm: {
-        numberOfAgendas: 0,
-        minutes: { notes: "" },
+        numberOfMeetings: 0,
+        minutes: { files: [] },
       },
       gm: {
-        egm: { notes: "" },
-        agm: { notes: "" },
+        egm: { files: [] },
+        agm: { files: [] },
       },
-      misc: { notes: "" },
+      misc: { files: [] },
     },
     filings: {
       id: `${id}-filings`,
       roc: {
-        incorporation: { notes: "" },
-        annualFilings: { notes: "" },
+        incorporation: { files: [] },
+        annualFilings: { files: [] },
       },
-      misc: { notes: "" },
+      misc: { files: [] },
     },
     transfer: {
       id: `${id}-transfer`,
-      docs: { notes: "" },
-      projectDetails: { notes: "" },
-      transfereeDetails: { notes: "" },
-      transfererDetails: { notes: "" },
-      misc: { notes: "" },
+      docs: { files: [] },
+      projectDetails: { files: [] },
+      transfereeDetails: { files: [] },
+      transfererDetails: { files: [] },
+      misc: { files: [] },
     },
     certificates: {
       id: `${id}-certificates`,
-      coi: null,
-      moa: null,
-      aoa: null,
-      gst: null,
-      espf: null,
+      coi: [],
+      moa: [],
+      aoa: [],
+      gst: [],
+      espf: [],
     },
     misc: {
       id: `${id}-miscellaneous`,
@@ -55,10 +56,40 @@ export function createCompanyRecord({ id, name, division }) {
 }
 
 export const initialCompanies = [
-  createCompanyRecord({ id: "umpp-1", name: "Company A", division: "umpp" }),
-  createCompanyRecord({ id: "umpp-2", name: "Company B", division: "umpp" }),
-  createCompanyRecord({ id: "umpp-3", name: "Company C", division: "umpp" }),
-  createCompanyRecord({ id: "itp-1", name: "Company A", division: "itp" }),
-  createCompanyRecord({ id: "itp-2", name: "Company B", division: "itp" }),
-  createCompanyRecord({ id: "itp-3", name: "Company C", division: "itp" }),
+  createCompanyRecord({
+    id: "umpp-1",
+    name: "Company A",
+    division: "umpp",
+    incorporationDate: "2021-04-12",
+  }),
+  createCompanyRecord({
+    id: "umpp-2",
+    name: "Company B",
+    division: "umpp",
+    incorporationDate: "2022-08-19",
+  }),
+  createCompanyRecord({
+    id: "umpp-3",
+    name: "Company C",
+    division: "umpp",
+    incorporationDate: "2024-02-05",
+  }),
+  createCompanyRecord({
+    id: "itp-1",
+    name: "Company A",
+    division: "itp",
+    incorporationDate: "2021-11-09",
+  }),
+  createCompanyRecord({
+    id: "itp-2",
+    name: "Company B",
+    division: "itp",
+    incorporationDate: "2023-06-21",
+  }),
+  createCompanyRecord({
+    id: "itp-3",
+    name: "Company C",
+    division: "itp",
+    incorporationDate: "2025-01-15",
+  }),
 ];

@@ -95,3 +95,9 @@ button {
     padding: 28px 18px 48px;
   }
 }
+
+/* Document/detail workspace sizing is kept here only at the app level. */
+.details-section {
+  min-width: 0;
+  overflow-x: auto;
+}

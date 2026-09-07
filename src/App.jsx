@@ -1,7 +1,7 @@
 import { useState } from "react";
 import CompanyTree from "./components/company-tree/CompanyTree";
-import GeneralDetails from "./components/general-details/GeneralDetails";
-import { getNextCompanyId } from "./config/treeConfig";
+import DetailsWorkspace from "./components/details-workspace/DetailsWorkspace";
+import { getCurrentYear, getNextCompanyId } from "./config/treeConfig";
 import { createCompanyRecord, initialCompanies } from "./data/initialData";
 import "./App.css";
 
@@ -16,6 +16,7 @@ function App() {
       id,
       name: `New Company ${companyNumber}`,
       division,
+      incorporationDate: `${getCurrentYear()}-01-01`,
     });
 
     updateCompanies((current) => [...current, newCompany]);
@@ -24,11 +25,9 @@ function App() {
 
   function deleteCompany(companyId) {
     const company = companies.find((item) => item.id === companyId);
-
     if (!company) return;
 
     const confirmed = window.confirm(`Delete "${company.name}"?`);
-
     if (!confirmed) return;
 
     updateCompanies((current) =>
@@ -69,8 +68,8 @@ function App() {
           />
         </section>
 
-        <section className="details-section" aria-label="General details">
-          <GeneralDetails
+        <section className="details-section" aria-label="General details and documents">
+          <DetailsWorkspace
             selectedNodeId={selectedNodeId}
             companies={companies}
             updateCompanies={updateCompanies}
