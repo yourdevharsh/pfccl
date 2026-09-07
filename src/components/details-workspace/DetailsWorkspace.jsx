@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import GeneralDetails from "../general-details/GeneralDetails";
+import DetailsNavigation from "./DetailsNavigation";
 import PDFPane from "./PDFPane";
 import { getFileKey } from "../../utils/fileUtils";
 import "./detailsWorkspace.css";
@@ -8,6 +9,7 @@ function DetailsWorkspace({
   selectedNodeId,
   companies,
   updateCompanies,
+  selectedYearByDivision,
   onSelect,
 }) {
   const usageRef = useRef(0);
@@ -226,9 +228,17 @@ function DetailsWorkspace({
           ) : (
             <div className="details-main-content">
               <div className="details-main-header">
-                <div>
-                  <div className="details-main-eyebrow">DETAILS</div>
-                  <div className="details-main-title">General Details</div>
+                <div className="details-main-header-left">
+                  <DetailsNavigation
+                    selectedNodeId={selectedNodeId}
+                    companies={companies}
+                    selectedYearByDivision={selectedYearByDivision}
+                    onSelect={onSelect}
+                  />
+                  <div>
+                    <div className="details-main-eyebrow">DETAILS</div>
+                    <div className="details-main-title">General Details</div>
+                  </div>
                 </div>
                 <div className="details-main-actions">
                   <button

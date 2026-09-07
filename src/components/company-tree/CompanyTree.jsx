@@ -19,16 +19,14 @@ function CompanyTree({
   companies,
   selectedNodeId,
   onSelect,
+  selectedYearByDivision,
+  onYearChange,
   onAddCompany,
   onDeleteCompany,
 }) {
   const years = getCompanyYears();
   const currentYear = getCurrentYear();
   const [collapsed, updateCollapsed] = useState({});
-  const [selectedYearByDivision, updateSelectedYearByDivision] = useState({
-    umpp: currentYear,
-    itp: currentYear,
-  });
   const [hoveredCompany, setHoveredCompany] = useState(null);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   const hidePopupTimer = useRef(null);
@@ -47,10 +45,8 @@ function CompanyTree({
   }
 
   function handleYearChange(division, value) {
-    updateSelectedYearByDivision((current) => ({
-      ...current,
-      [division]: Number(value),
-    }));
+    const nextYear = Number(value);
+    onYearChange?.(division, nextYear);
   }
 
   function cancelPopupHide() {
@@ -90,10 +86,7 @@ function CompanyTree({
   }
 
   function handleAddCompany(division) {
-    updateSelectedYearByDivision((current) => ({
-      ...current,
-      [division]: currentYear,
-    }));
+    onYearChange?.(division, currentYear);
     onAddCompany(division);
   }
 

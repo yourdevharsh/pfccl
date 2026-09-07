@@ -8,6 +8,10 @@ import "./App.css";
 function App() {
   const [companies, updateCompanies] = useState(initialCompanies);
   const [selectedNodeId, updateSelectedNodeId] = useState("pfccl");
+  const [selectedYearByDivision, updateSelectedYearByDivision] = useState({
+    umpp: getCurrentYear(),
+    itp: getCurrentYear(),
+  });
 
   function addCompany(division) {
     const id = getNextCompanyId(companies, division);
@@ -21,6 +25,29 @@ function App() {
 
     updateCompanies((current) => [...current, newCompany]);
     updateSelectedNodeId(newCompany.id);
+  }
+
+  function handleYearChange(division, year) {
+    updateSelectedYearByDivision((current) => ({
+      ...current,
+      [division]: year,
+    }));
+
+    const selectedCompany = companies.find((company) => {
+      if (company.id === selectedNodeId) return true;
+      return selectedNodeId.startsWith(`${company.id}-`);
+    });
+
+    if (selectedCompany?.division === division) {
+      const incorporationYear = Number.parseInt(
+        selectedCompany.incorporationDate?.slice(0, 4),
+        10,
+      );
+
+      if (incorporationYear !== year) {
+        updateSelectedNodeId(division);
+      }
+    }
   }
 
   function deleteCompany(companyId) {
@@ -63,6 +90,8 @@ function App() {
             companies={companies}
             selectedNodeId={selectedNodeId}
             onSelect={updateSelectedNodeId}
+            selectedYearByDivision={selectedYearByDivision}
+            onYearChange={handleYearChange}
             onAddCompany={addCompany}
             onDeleteCompany={deleteCompany}
           />
@@ -72,6 +101,7 @@ function App() {
           <DetailsWorkspace
             selectedNodeId={selectedNodeId}
             companies={companies}
+            selectedYearByDivision={selectedYearByDivision}
             updateCompanies={updateCompanies}
             onSelect={updateSelectedNodeId}
           />
