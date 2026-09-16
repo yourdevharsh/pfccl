@@ -1,0 +1,35 @@
+{
+  "id": "company-b7cf105a-00b4-44d6-9b8c-cde10acd06fc",
+  "name": "Company 1",
+  "division": "umpp",
+  "incorporationDate": "2026-01-01",
+  "master": {
+    "cin": "1234",
+    "pan": "1234",
+    "gstin": "1234",
+    "tan": "1234"
+  },
+  "meetings": {
+    "bm": {
+      "numberOfMeetings": 0
+    }
+  },
+  "filings": {
+    "roc": {
+      "incorporation": {
+        "files": [
+          {
+            "id": "file-ce54591f-e397-486a-87c6-3acde5eb28f5",
+            "name": "DO_Letter_Sample.pdf",
+            "url": "http://localhost:3000/files/umpp/2026/company-b7cf105a-00b4-44d6-9b8c-cde10acd06fc/filings/file-ce54591f-e397-486a-87c6-3acde5eb28f5-DO_Letter_Sample.pdf",
+            "mimeType": "application/pdf",
+            "size": 2923
+          }
+        ]
+      }
+    }
+  },
+  "transfer": {},
+  "certificates": {},
+  "misc": {}
+}
