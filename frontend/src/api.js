@@ -90,4 +90,21 @@ export const repositoryApi = {
   },
 };
 
+
+export const aiApi = {
+  async getProviders() {
+    const payload = await request('/ai/providers');
+    return payload?.data ?? payload;
+  },
+
+  async chat(payload) {
+    const response = await request('/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return response?.data ?? response;
+  },
+};
+
 export { API_BASE_URL };

@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { config } from "./config.js";
 import repositoryRoutes from "./routes/repositoryRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 import { sendError } from "./utils/http.js";
 import { ensureStorage } from "./services/storage.js";
 import { assertSafeSegment, safeJoin } from "./utils/pathSafety.js";
@@ -32,6 +33,7 @@ export async function createApp() {
     res.json({ ok: true, service: "pfccL-subsidiaries-api" });
   });
 
+  app.use("/api/ai", aiRoutes);
   app.use("/api", repositoryRoutes);
 
   // Backward-compatible alias for file URLs already stored as /files/...

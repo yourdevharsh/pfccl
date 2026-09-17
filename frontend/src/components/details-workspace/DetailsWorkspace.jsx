@@ -3,6 +3,7 @@ import GeneralDetails from "../general-details/GeneralDetails";
 import DetailsNavigation from "./DetailsNavigation";
 import PDFPane from "./PDFPane";
 import { getFileKey } from "../../utils/fileUtils";
+import { getAiSelectionFromTarget } from "../../utils/aiSelection";
 import "./detailsWorkspace.css";
 
 function DetailsWorkspace({
@@ -15,6 +16,10 @@ function DetailsWorkspace({
   onDeleteFile,
   loadingDetail,
   root,
+  aiSelecting = false,
+  aiSelections = [],
+  onAiSelect,
+  onAiRemoveSelection,
 }) {
   const usageRef = useRef(0);
   const [panels, setPanels] = useState([
@@ -26,6 +31,71 @@ function DetailsWorkspace({
       lastUsed: 0,
     },
   ]);
+  const lastClickRef = useRef({ time: 0, target: null });
+
+  function handleWorkspaceClickCapture(event) {
+    if (!aiSelecting) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+
+    if (target.closest(".details-main-header, .details-main-actions, .details-navigation, .workspace-icon-button, .details-main-rail, .details-reopen-button")) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    const now = Date.now();
+    const interactionTarget = target.closest("button, label, input, textarea, select, .file-entry, .detail-field, .detail-card, .detail-page, .pdf-pane") || target;
+    const previous = lastClickRef.current;
+    const isDoubleLike = previous.target === interactionTarget && now - previous.time < 500;
+
+    if (isDoubleLike) {
+      // The first click was intentionally blocked for selection. On the second
+      // click we remove only the selection that the first click just created,
+      // then allow the native interaction to happen (edit/open/navigation).
+      if (previous.selectionId && !previous.wasAlreadySelected) {
+        onAiRemoveSelection?.(previous.selectionId);
+      }
+
+      lastClickRef.current = { time: 0, target: null, selectionId: null, wasAlreadySelected: false };
+
+      // Never allow a delete action while selection mode is active.
+      if (target.closest(".file-icon-button.danger")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      return;
+    }
+
+    const selection = getAiSelectionFromTarget(target);
+    const wasAlreadySelected = Boolean(selection && aiSelections.some((item) => item.id === selection.id));
+    lastClickRef.current = {
+      time: now,
+      target: interactionTarget,
+      selectionId: selection?.id || null,
+      wasAlreadySelected,
+    };
+
+    if (selection) {
+      onAiSelect?.(selection);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  function handleWorkspaceDoubleClickCapture(event) {
+    // Double-click behavior is handled by the second click in
+    // handleWorkspaceClickCapture so browser-native editing/opening can run.
+    if (!aiSelecting) return;
+    if (event.target instanceof Element && event.target.closest(".file-icon-button.danger")) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }
 
   useEffect(() => {
     const usage = ++usageRef.current;
@@ -194,7 +264,7 @@ function DetailsWorkspace({
   const pdfPanels = panels.filter((panel) => panel.type === "pdf");
 
   return (
-    <div className="details-workspace">
+    <div className={`details-workspace ${aiSelecting ? "ai-selection-mode" : ""}`} onClickCapture={handleWorkspaceClickCapture} onDoubleClickCapture={handleWorkspaceDoubleClickCapture}>
       {mainPanel && !mainPanel.closed && (
         <section
           className={`details-main-pane ${

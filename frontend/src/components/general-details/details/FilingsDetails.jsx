@@ -16,7 +16,7 @@ function readFiles(filings, path) {
 function FilingsDetails({ company, onOpenFile, onUploadFiles, onDeleteFile }) {
   const filings = company.filings ?? {};
   return (
-    <div className="detail-page filings-details">
+    <div className="detail-page filings-details" data-ai-company-id={company.id} data-ai-detail-key="filings">
       <div className="detail-header"><div className="detail-eyebrow">FILINGS</div><h2 className="detail-title">{company.name}</h2><p className="detail-subtitle">ROC and statutory filing records</p></div>
       <div className="detail-card"><h3 className="detail-card-title">Filing Documents</h3><div className="detail-form-grid">
         {FILING_FIELDS.map(([field, label]) => (

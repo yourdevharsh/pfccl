@@ -57,3 +57,17 @@ Copy `.env.example` to `.env` and adjust values as required.
 - Uploaded file metadata is stored in `company.json`; binary files are stored on disk.
 - The original filename is kept in metadata for the frontend, while the physical filename is prefixed with a generated file ID to avoid collisions.
 - No database is used.
+
+## AI assistant
+
+The backend now exposes the AI assistant at `/api/ai/providers` and `/api/ai/chat`.
+
+Install the added packages with:
+
+```bash
+npm install
+```
+
+Set `GROQ_API_KEY` and/or `GEMINI_API_KEY` in `server/.env`. The keys must remain on the server.
+
+See `AI_API.md` for the request format and context/token behavior.

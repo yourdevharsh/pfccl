@@ -5,7 +5,7 @@ function MasterDataDetails({ company, updateCompanies }) {
     updateCompanies(company.id, (current) => ({ ...current, master: { ...(current.master ?? {}), [field]: value } }));
   }
   return (
-    <div className="detail-page master-data-details">
+    <div className="detail-page master-data-details" data-ai-company-id={company.id} data-ai-detail-key="master-data">
       <div className="detail-header"><div className="detail-eyebrow">MASTER DATA</div><h2 className="detail-title">{company.name}</h2><p className="detail-subtitle">{company.id}-master-data</p></div>
       <div className="detail-card"><h3 className="detail-card-title">Registered Details</h3><div className="detail-form-grid">
         <div className="detail-field"><label htmlFor="master-company-name">Company Name</label><input id="master-company-name" value={company.name ?? ""} disabled /></div>

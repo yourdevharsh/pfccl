@@ -8,7 +8,7 @@ function MeetingsDetails({ company, updateCompanies, onOpenFile, onUploadFiles, 
   }
   const fileProps = (field, value) => ({ companyId: company.id, detailKey: "meetings", field, value, onUpload: onUploadFiles, onDeleteFile, onOpenFile });
   return (
-    <div className="detail-page meetings-details">
+    <div className="detail-page meetings-details" data-ai-company-id={company.id} data-ai-detail-key="meetings">
       <div className="detail-header"><div className="detail-eyebrow">MEETINGS</div><h2 className="detail-title">{company.name}</h2><p className="detail-subtitle">Board and general meeting records</p></div>
       <div className="detail-card"><h3 className="detail-card-title">Board Meetings</h3><div className="detail-form-grid">
         <div className="detail-field"><label htmlFor={`meeting-count-${company.id}`}>Number of Meetings</label><input id={`meeting-count-${company.id}`} type="number" min="0" value={meetings.bm?.numberOfMeetings ?? 0} onChange={(event) => updateMeetings((current) => ({ ...current, bm: { ...(current.bm ?? {}), numberOfMeetings: Number(event.target.value) } }))} /></div>

@@ -47,7 +47,16 @@ function PDFPane({
 
   if (!expanded) {
     return (
-      <aside className="pdf-pane pdf-pane-minimized" title={fileName}>
+      <aside
+        className="pdf-pane pdf-pane-minimized"
+        title={fileName}
+        data-ai-pdf
+        data-ai-file-id={file?.id || ""}
+        data-ai-file-name={fileName}
+        data-ai-company-id={file?.__aiContext?.companyId || ""}
+        data-ai-detail-key={file?.__aiContext?.detailKey || ""}
+        data-ai-field={file?.__aiContext?.field || ""}
+      >
         <button
           type="button"
           className="pdf-rail-expand"
@@ -74,7 +83,15 @@ function PDFPane({
   }
 
   return (
-    <section className="pdf-pane pdf-pane-expanded">
+    <section
+      className="pdf-pane pdf-pane-expanded"
+      data-ai-pdf
+      data-ai-file-id={file?.id || ""}
+      data-ai-file-name={fileName}
+      data-ai-company-id={file?.__aiContext?.companyId || ""}
+      data-ai-detail-key={file?.__aiContext?.detailKey || ""}
+      data-ai-field={file?.__aiContext?.field || ""}
+    >
       <div className="pdf-pane-header">
         <div className="pdf-pane-title" title={fileName}>
           <FileIcon />

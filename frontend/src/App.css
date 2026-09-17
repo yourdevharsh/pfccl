@@ -96,6 +96,11 @@ button {
   }
 }
 
+@media (max-width: 1100px) {
+  .app-main { --ai-sidebar-width: 360px; }
+}
+
+
 /* Document/detail workspace sizing is kept here only at the app level. */
 .details-section {
   min-width: 0;
@@ -111,4 +116,35 @@ button {
   background: #fff6f6;
   color: #9f2424;
   font-size: 12px;
+}
+
+.app-main {
+  --ai-sidebar-width: 420px;
+  width: 100%;
+  min-width: 0;
+}
+
+.app-main-content {
+  width: 100%;
+  min-width: 0;
+  transition: width 180ms ease, max-width 180ms ease;
+}
+
+.app-main-ai-open .app-main-content {
+  width: calc(100% - var(--ai-sidebar-width));
+  max-width: calc(100% - var(--ai-sidebar-width));
+}
+
+.details-workspace.ai-selection-mode,
+.details-workspace.ai-selection-mode * {
+  cursor: crosshair;
+}
+
+.details-workspace.ai-selection-mode .file-entry-name:hover,
+.details-workspace.ai-selection-mode .file-add-row:hover,
+.details-workspace.ai-selection-mode input:hover,
+.details-workspace.ai-selection-mode textarea:hover,
+.details-workspace.ai-selection-mode select:hover {
+  outline: 1px dashed #60a5fa;
+  outline-offset: 2px;
 }

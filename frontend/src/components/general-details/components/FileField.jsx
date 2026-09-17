@@ -54,11 +54,20 @@ function FileField({
         {files.map((file, index) => {
           const name = getFileName(file);
           return (
-            <div className="file-entry" key={`${file?.id ?? name}-${index}`}>
+            <div
+              className="file-entry"
+              key={`${file?.id ?? name}-${index}`}
+              data-ai-file-id={file?.id || ""}
+              data-ai-file-name={name}
+              data-ai-mime-type={file?.mimeType || file?.type || "application/pdf"}
+              data-ai-company-id={companyId}
+              data-ai-detail-key={detailKey}
+              data-ai-field={field}
+            >
               <button
                 type="button"
                 className="file-entry-name"
-                onClick={() => isPdfFile(file) && onOpenFile?.(file, `${label} • ${name}`)}
+                onClick={() => isPdfFile(file) && onOpenFile?.({ ...file, __aiContext: { companyId, detailKey, field } }, `${label} • ${name}`)}
                 title={isPdfFile(file) ? "Open PDF" : name}
               >
                 <span className="file-entry-dot" aria-hidden="true" />

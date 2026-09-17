@@ -8,7 +8,7 @@ const CERTIFICATE_FIELDS = [
 function CertificatesDetails({ company, onOpenFile, onUploadFiles, onDeleteFile }) {
   const certificates = company.certificates ?? {};
   return (
-    <div className="detail-page certificates-details">
+    <div className="detail-page certificates-details" data-ai-company-id={company.id} data-ai-detail-key="certificates">
       <div className="detail-header"><div className="detail-eyebrow">CERTIFICATES</div><h2 className="detail-title">{company.name}</h2><p className="detail-subtitle">Certificate documents and uploaded files</p></div>
       <div className="detail-card"><h3 className="detail-card-title">Certificate Files</h3><div className="certificate-grid">
         {CERTIFICATE_FIELDS.map(([field, label]) => (
