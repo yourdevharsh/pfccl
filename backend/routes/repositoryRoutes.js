@@ -1,8 +1,9 @@
 import express from "express";
 import crypto from "node:crypto";
 import multer from "multer";
+import fs from "node:fs/promises";
 import { config } from "../config.js";
-import { DETAIL_KEYS, DIVISIONS } from "../constants.js";
+import { DETAIL_KEYS } from "../constants.js";
 import {
   createCompany,
   deleteCompany,
@@ -10,6 +11,7 @@ import {
   getCompanyStats,
   getRootRecord,
   listCompanies,
+  listDivisions,
   moveCompanyIfLocationChanged,
   readDetail,
   removeFile,
@@ -19,8 +21,6 @@ import {
 } from "../services/storage.js";
 import { asyncRoute, sendData } from "../utils/http.js";
 import { assertSafeDetailKey, assertSafeSegment, safeJoin } from "../utils/pathSafety.js";
-import { config as appConfig } from "../config.js";
-import fs from "node:fs/promises";
 
 const router = express.Router();
 const upload = multer({
@@ -30,7 +30,7 @@ const upload = multer({
 
 function normalizeCompanyPatch(payload, existing) {
   const next = { ...existing };
-  const allowed = ["name", "incorporationDate", "master", "meetings", "filings", "transfer", "certificates", "misc"];
+  const allowed = ["name", "incorporationDate", "status", "meetingProfile", "master", "meetings", "filings", "transfer", "certificates", "misc"];
   for (const key of allowed) {
     if (Object.prototype.hasOwnProperty.call(payload || {}, key)) next[key] = payload[key];
   }
@@ -42,24 +42,24 @@ function normalizeCompanyPatch(payload, existing) {
 router.get("/pfccl", asyncRoute(async (_req, res) => {
   const root = await getRootRecord();
   const stats = await getCompanyStats();
-  const data = { ...root, ...stats, stats };
-  await saveRootRecord(data);
-  sendData(res, data);
+  sendData(res, { ...root, ...stats, stats });
 }));
 
 router.get("/divisions", asyncRoute(async (_req, res) => {
-  sendData(res, DIVISIONS);
+  sendData(res, await listDivisions());
 }));
 
 router.get("/divisions/:division/years/:year/companies", asyncRoute(async (req, res) => {
   assertSafeSegment(req.params.division, "division");
-  const year = Number(req.params.year);
-  if (!Number.isInteger(year) || year < 1900 || year > 9999) {
+  const rawYear = String(req.params.year).toLowerCase();
+  const year = rawYear === "all" ? "all" : Number(req.params.year);
+  if (year !== "all" && (!Number.isInteger(year) || year < 1900 || year > 9999)) {
     const error = new Error("Invalid year.");
     error.status = 400;
     throw error;
   }
-  sendData(res, await listCompanies(req.params.division, year));
+  const status = String(req.query.status || "ALL").toUpperCase();
+  sendData(res, await listCompanies(req.params.division, year, status));
 }));
 
 router.get("/companies/:companyId", asyncRoute(async (req, res) => {
@@ -99,7 +99,8 @@ router.patch("/companies/:companyId", asyncRoute(async (req, res) => {
   const next = normalizeCompanyPatch(req.body || {}, found.company);
   await moveCompanyIfLocationChanged(found.company, next);
   await saveCompany(next);
-  sendData(res, next);
+  const refreshed = (await findCompany(req.params.companyId))?.company;
+  sendData(res, refreshed);
 }));
 
 router.delete("/companies/:companyId", asyncRoute(async (req, res) => {
@@ -186,7 +187,7 @@ router.get(
     assertSafeSegment(req.params.detailDirectory, "detail directory");
     assertSafeSegment(req.params.fileName, "file name");
     const filePath = safeJoin(
-      appConfig.storageRoot,
+      config.storageRoot,
       req.params.division,
       req.params.year,
       req.params.companyId,

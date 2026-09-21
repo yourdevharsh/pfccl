@@ -18,6 +18,7 @@ export const config = {
   maxFileSize: numberEnv(process.env.MAX_FILE_SIZE_MB, 50) * 1024 * 1024,
   storageRoot: path.resolve(backendRoot, process.env.STORAGE_ROOT || "./storage"),
   publicBaseUrl: (process.env.PUBLIC_BASE_URL || "").replace(/\/$/, ""),
+  databaseUrl: process.env.DATABASE_URL || "",
   groqApiKey: process.env.GROQ_API_KEY || "",
   geminiApiKey: process.env.GEMINI_API_KEY || "",
   groqModel: process.env.GROQ_MODEL || "openai/gpt-oss-20b",

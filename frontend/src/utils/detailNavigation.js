@@ -13,7 +13,7 @@ function getCompanyIncorporationYear(company) {
 function getVisibleCompanies(companies, division, year) {
   return companies.filter((company) => {
     if (company.division !== division) return false;
-    if (year === null) return true;
+    if (year === null || year === "all") return true;
     return getCompanyIncorporationYear(company) === year;
   });
 }
@@ -27,9 +27,10 @@ function getContext(selection, selectedYearByDivision) {
   }
 
   if (selection.type === "company" || selection.type === "sub-detail") {
+    const division = getCompanyDivision(selection.company);
     return {
-      division: getCompanyDivision(selection.company),
-      year: getCompanyIncorporationYear(selection.company),
+      division,
+      year: selectedYearByDivision[division] ?? getCompanyIncorporationYear(selection.company),
     };
   }
 

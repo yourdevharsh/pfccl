@@ -4,6 +4,7 @@ import {
   COMPANY_SUB_DETAILS,
   getCompanyYears,
   getCurrentYear,
+  COMPANY_STATUS_FILTERS,
   getSubDetailId,
 } from "../../config/treeConfig";
 import "./companyTree.css";
@@ -18,7 +19,9 @@ function CompanyTree({
   selectedNodeId,
   onSelect,
   selectedYearByDivision,
+  selectedStatusByDivision,
   onYearChange,
+  onStatusChange,
   onAddCompany,
   onDeleteCompany,
   divisions = [],
@@ -47,8 +50,11 @@ function CompanyTree({
   }
 
   function handleYearChange(division, value) {
-    const nextYear = Number(value);
-    onYearChange?.(division, nextYear);
+    onYearChange?.(division, value === "all" ? "all" : Number(value));
+  }
+
+  function handleStatusChange(division, value) {
+    onStatusChange?.(division, value);
   }
 
   function cancelPopupHide() {
@@ -111,8 +117,11 @@ function CompanyTree({
           {company.name}
         </button>
 
+        <span className={`company-status-badge status-${String(company.status || "ACTIVE").toLowerCase()}`}>
+          {String(company.status || "ACTIVE").replaceAll("_", " ")}
+        </span>
         <span className="company-incorporation-year">
-          {getIncorporationYear(company)}
+          {getIncorporationYear(company) || "—"}
         </span>
 
         <button
@@ -163,11 +172,14 @@ function CompanyTree({
                 ) : divisions.map((division) => {
                   const selectedYear =
                     selectedYearByDivision[division.id] ?? currentYear;
-                  const divisionCompanies = companies.filter(
-                    (company) =>
-                      company.division === division.id &&
-                      getIncorporationYear(company) === selectedYear,
-                  );
+                  const selectedStatus =
+                    selectedStatusByDivision?.[division.id] ?? "ALL";
+                  const divisionCompanies = companies.filter((company) => {
+                    if (company.division !== division.id) return false;
+                    if (selectedYear !== "all" && getIncorporationYear(company) !== Number(selectedYear)) return false;
+                    if (selectedStatus !== "ALL" && String(company.status || "ACTIVE").toUpperCase() !== selectedStatus) return false;
+                    return true;
+                  });
                   const divisionCollapsed = Boolean(collapsed[division.id]);
 
                   return (
@@ -196,6 +208,7 @@ function CompanyTree({
                                 handleYearChange(division.id, event.target.value)
                               }
                             >
+                              <option value="all">All years</option>
                               {years.map((year) => (
                                 <option key={year} value={year}>
                                   {year}
@@ -203,10 +216,22 @@ function CompanyTree({
                               ))}
                             </select>
                           </div>
+                          <div className="company-status-filter">
+                            <label htmlFor={`${division.id}-company-status`}>Status</label>
+                            <select
+                              id={`${division.id}-company-status`}
+                              value={selectedStatus}
+                              onChange={(event) => handleStatusChange(division.id, event.target.value)}
+                            >
+                              {COMPANY_STATUS_FILTERS.map((filter) => (
+                                <option key={filter.value} value={filter.value}>{filter.label}</option>
+                              ))}
+                            </select>
+                          </div>
 
                           {divisionCompanies.length === 0 ? (
                             <div className="empty-company-state">
-                              No companies incorporated in {selectedYear}
+                              No companies match the current year/status filters.
                             </div>
                           ) : (
                             <ul className="company-list">

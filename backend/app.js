@@ -3,13 +3,18 @@ import express from "express";
 import cors from "cors";
 import { config } from "./config.js";
 import repositoryRoutes from "./routes/repositoryRoutes.js";
+import meetingRoutes from "./routes/meetingRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import { sendError } from "./utils/http.js";
-import { ensureStorage } from "./services/storage.js";
+import { ensureStorage, ensureDatabase } from "./services/storage.js";
+import { connectDatabase } from "./services/prisma.js";
 import { assertSafeSegment, safeJoin } from "./utils/pathSafety.js";
 
 export async function createApp() {
   await ensureStorage();
+  await connectDatabase();
+  await ensureDatabase();
+
   const app = express();
 
   const allowedOrigins = config.corsOrigin === "*"
@@ -29,15 +34,15 @@ export async function createApp() {
   app.use(express.json({ limit: "5mb" }));
   app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
-  app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, service: "pfccL-subsidiaries-api" });
+  app.get("/api/health", async (_req, res) => {
+    res.json({ ok: true, service: "pfccL-subsidiaries-api", database: "connected" });
   });
 
   app.use("/api/ai", aiRoutes);
+  app.use("/api", meetingRoutes);
   app.use("/api", repositoryRoutes);
 
   // Backward-compatible alias for file URLs already stored as /files/...
-  // New file metadata uses /api/files/... but existing records do not need migration.
   app.get(
     "/files/:division/:year/:companyId/:detailDirectory/:fileName",
     async (req, res, next) => {

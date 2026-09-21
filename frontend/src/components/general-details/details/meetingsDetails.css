@@ -1,3 +1,92 @@
-.meetings-details .detail-card {
-  max-width: 980px;
+.meetings-details .detail-card { max-width: 1180px; }
+
+.meetings-summary-card {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.meetings-summary-item {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-soft);
+}
+
+.meetings-summary-item span { display: block; color: var(--ink-500); font-size: 9px; font-weight: 800; }
+.meetings-summary-item strong { display: block; margin-top: 2px; color: var(--pfccl-navy); font-size: 18px; }
+.meetings-add-button { min-height: 40px; }
+
+.meeting-create-card { background: linear-gradient(180deg, #fffef7, #fff); border-color: var(--pfccl-gold-border); }
+.meeting-create-head { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+.meeting-create-head > span { color: var(--ink-500); font-size: 10px; }
+.meeting-create-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; align-items: end; }
+.meeting-create-action { display: flex; align-items: end; }
+
+.meeting-input-block { min-width: 0; }
+.meeting-input-block label,
+.meeting-secondary-dates label,
+.meeting-note-input label { display: block; margin-bottom: 4px; color: var(--ink-500); font-size: 9px; font-weight: 800; }
+.meeting-input-block input,
+.meeting-input-block select,
+.meeting-secondary-dates input,
+.meeting-note-input input { width: 100%; min-height: 34px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: 7px; background: #fff; color: var(--ink-800); font-size: 11px; }
+
+.meetings-list-toolbar { display: flex; justify-content: space-between; align-items: end; gap: 16px; }
+.meetings-list-toolbar > div:first-child span { color: var(--ink-500); font-size: 10px; }
+.meeting-filter-tabs { display: flex; gap: 4px; }
+.meeting-filter-tabs button { min-height: 34px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink-600); font-size: 10px; font-weight: 800; cursor: pointer; }
+.meeting-filter-tabs button.active { background: var(--pfccl-navy); border-color: var(--pfccl-navy); color: #fff; }
+.meeting-filter-tabs small { margin-left: 4px; opacity: .7; }
+
+.meeting-register { display: grid; gap: 10px; }
+.meeting-record { padding: 13px; border: 1px solid var(--line); border-radius: 11px; background: #fff; box-shadow: var(--shadow-sm); scroll-margin-top: 20px; }
+.meeting-record.focused { border-color: var(--pfccl-gold); box-shadow: 0 0 0 3px rgb(244 197 16 / 16%), var(--shadow-md); }
+.meeting-record-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.meeting-record-title, .meeting-record-actions { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.meeting-record-title strong { color: var(--ink-800); font-size: 12px; }
+.meeting-number-label { color: var(--ink-400); font-size: 10px; font-weight: 800; }
+
+.meeting-type-pill,
+.meeting-status-pill { padding: 4px 7px; border-radius: 999px; font-size: 8px; font-weight: 900; letter-spacing: .05em; }
+.meeting-type-board { background: var(--pfccl-navy-soft); color: var(--pfccl-navy); }
+.meeting-type-agm { background: var(--pfccl-gold-soft); color: #6d5900; }
+.meeting-type-egm { background: #f4edf8; color: #6c3c88; }
+.status-planned { background: #edf1f6; color: var(--ink-600); }
+.status-held { background: #eaf4ed; color: #2f6d49; }
+.status-cancelled { background: var(--pfccl-red-soft); color: var(--pfccl-red); }
+
+.meeting-delete-button { width: 26px; height: 26px; border: 0; border-radius: 6px; background: transparent; color: var(--pfccl-red); font-size: 17px; cursor: pointer; }
+.meeting-delete-button:hover { background: var(--pfccl-red-soft); }
+
+.meeting-record-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-top: 11px; }
+.meeting-workflow-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+.meeting-workflow-strip span { padding: 7px 8px; border-radius: 8px; background: var(--surface-soft); font-size: 9px; color: var(--ink-400); }
+.meeting-workflow-strip span b { display: block; margin-bottom: 2px; color: var(--ink-600); font-size: 9px; }
+.meeting-workflow-strip .done { background: #eef6f0; color: #4b785a; }
+.meeting-workflow-strip .done b { color: #2f6d49; }
+
+.meeting-secondary-dates { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 9px; padding: 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-soft); }
+.meeting-record-footer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; margin-top: 9px; }
+.meeting-save-button { min-height: 34px; }
+
+.meeting-document-block { margin-top: 10px; }
+.meeting-register-empty { padding: 20px; border: 1px dashed var(--line-strong); border-radius: 9px; color: var(--ink-500); font-size: 11px; text-align: center; }
+
+@media (max-width: 1000px) {
+  .meetings-summary-card { grid-template-columns: repeat(4, 1fr); }
+  .meetings-add-button { grid-column: 1 / -1; justify-self: start; }
+  .meeting-create-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .meeting-record-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .meeting-secondary-dates { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 700px) {
+  .meetings-summary-card { grid-template-columns: repeat(2, 1fr); }
+  .meetings-list-toolbar, .meeting-create-head { display: grid; align-items: stretch; }
+  .meeting-filter-tabs { flex-wrap: wrap; }
+  .meeting-create-grid, .meeting-record-grid, .meeting-secondary-dates { grid-template-columns: 1fr; }
+  .meeting-record-footer { grid-template-columns: 1fr; }
+  .meeting-save-button { width: 100%; }
 }

@@ -1,13 +1,17 @@
 .pfccl-stat-button {
   padding: 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: linear-gradient(145deg, #fff, var(--surface-soft));
   text-align: left;
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--ease), border-color var(--ease), background var(--ease), box-shadow var(--ease);
 }
 
 .pfccl-stat-button:hover {
-  border-color: #93c5fd;
-  background: #eff6ff;
+  transform: translateY(-2px);
+  border-color: var(--pfccl-gold-border);
+  background: var(--pfccl-gold-soft);
+  box-shadow: var(--shadow-md);
 }

@@ -1,0 +1,215 @@
+.board-events-sidebar {
+  position: fixed;
+  top: 76px;
+  left: 0;
+  bottom: 0;
+  z-index: 30;
+  width: 306px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: rgb(250 251 253 / 96%);
+  backdrop-filter: blur(12px);
+  box-shadow: 8px 0 28px rgb(25 37 64 / 5%);
+}
+
+.board-events-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #fff, #f7f8fb);
+}
+
+.board-events-eyebrow {
+  color: var(--ink-500);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.board-events-header h2 {
+  margin: 3px 0 0;
+  color: var(--pfccl-navy-strong);
+  font-size: 16px;
+}
+
+.board-events-count {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--pfccl-navy);
+  color: var(--pfccl-gold);
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 6px 14px rgb(30 45 83 / 14%);
+}
+
+.board-events-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-500);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.board-events-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.urgency-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.urgency-critical .board-event-marker,
+.urgency-critical.urgency-dot { background: var(--pfccl-red); }
+.urgency-high .board-event-marker,
+.urgency-high.urgency-dot { background: #e2782f; }
+.urgency-medium .board-event-marker,
+.urgency-medium.urgency-dot { background: var(--pfccl-gold); }
+.urgency-low .board-event-marker,
+.urgency-low.urgency-dot { background: #4d8b66; }
+
+.board-events-list {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+}
+
+.board-event-card {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 5px 1fr;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--ease), border-color var(--ease), box-shadow var(--ease), background var(--ease);
+}
+
+.board-event-card:hover {
+  transform: translateX(2px);
+  border-color: var(--pfccl-gold-border);
+  box-shadow: var(--shadow-md);
+  background: #fffef7;
+}
+
+.board-event-marker {
+  width: 4px;
+  height: 100%;
+  min-height: 44px;
+  border-radius: 999px;
+}
+
+.board-event-topline,
+.board-event-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.board-event-type {
+  color: var(--ink-500);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.board-event-urgency {
+  color: var(--ink-600);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.board-event-title {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-800);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.board-event-company {
+  display: block;
+  margin-top: 2px;
+  color: var(--pfccl-navy);
+  font-size: 11px;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-event-meta {
+  margin-top: 5px;
+  color: var(--ink-400);
+  font-size: 9px;
+}
+
+.board-events-empty {
+  margin: 20px 6px;
+  padding: 20px 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  gap: 7px;
+  text-align: center;
+  background: #fff;
+}
+
+.board-events-empty-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #eaf4ed;
+  color: #2f6d49;
+  font-weight: 900;
+}
+
+.board-events-empty strong {
+  color: var(--ink-800);
+  font-size: 12px;
+}
+
+.board-events-empty span {
+  color: var(--ink-500);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .board-events-sidebar { width: 270px; }
+}
+
+@media (max-width: 760px) {
+  .board-events-sidebar {
+    position: static;
+    width: 100%;
+    max-height: 260px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .board-events-list { max-height: 170px; }
+}

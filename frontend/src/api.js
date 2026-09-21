@@ -30,8 +30,11 @@ export const repositoryApi = {
     return request("/divisions");
   },
 
-  getCompanies(division, year) {
-    return request(`/divisions/${encodeURIComponent(division)}/years/${year}/companies`);
+  getCompanies(division, year, status = "ALL") {
+    const params = new URLSearchParams();
+    if (status && status !== "ALL") params.set("status", status);
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    return request(`/divisions/${encodeURIComponent(division)}/years/${encodeURIComponent(year)}/companies${suffix}`);
   },
 
   getCompany(companyId) {
@@ -90,6 +93,50 @@ export const repositoryApi = {
   },
 };
 
+
+export const meetingApi = {
+  getDashboard() {
+    return request("/meetings/dashboard");
+  },
+
+  getEvents({ days = 60, overdueDays = 30 } = {}) {
+    return request(`/meetings/events?days=${days}&overdueDays=${overdueDays}`);
+  },
+
+  getCompanyMeetings(companyId) {
+    return request(`/companies/${encodeURIComponent(companyId)}/meetings`);
+  },
+
+  createMeeting(companyId, payload) {
+    return request(`/companies/${encodeURIComponent(companyId)}/meetings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateMeeting(companyId, meetingId, payload) {
+    return request(`/companies/${encodeURIComponent(companyId)}/meetings/${encodeURIComponent(meetingId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteMeeting(companyId, meetingId) {
+    return request(`/companies/${encodeURIComponent(companyId)}/meetings/${encodeURIComponent(meetingId)}`, {
+      method: "DELETE",
+    });
+  },
+
+  recordEarlyBoardMeeting(companyId, heldDate) {
+    return request(`/companies/${encodeURIComponent(companyId)}/meetings/board/early`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ heldDate }),
+    });
+  },
+};
 
 export const aiApi = {
   async getProviders() {

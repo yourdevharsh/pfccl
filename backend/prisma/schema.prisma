@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model RepositoryMeta {
+  id        Int      @id @default(1)
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Division {
+  id        String    @id
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  companies Company[]
+}
+
+model Company {
+  id                 String          @id
+  name               String
+  incorporationDate  DateTime        @db.Date
+  divisionId         String
+  status              String          @default("ACTIVE")
+  meetingProfile     String          @default("STANDARD_120")
+  division            Division       @relation(fields: [divisionId], references: [id], onDelete: Restrict)
+  details            CompanyDetail[]
+  files              StoredFile[]
+  meetings            Meeting[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([divisionId, incorporationDate])
+  @@index([divisionId, status])
+}
+
+model CompanyDetail {
+  id        String   @id @default(cuid())
+  companyId String
+  detailKey String
+  data      Json
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, detailKey])
+  @@index([detailKey])
+}
+
+model StoredFile {
+  id           String   @id
+  companyId    String
+  detailKey    String
+  fieldPath    String
+  originalName String
+  physicalName String
+  mimeType     String   @default("application/octet-stream")
+  size         Int      @default(0)
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([companyId, detailKey])
+  @@index([companyId, detailKey, fieldPath])
+  @@index([companyId, detailKey, id])
+}
+
+model Meeting {
+  id                     String   @id @default(cuid())
+  companyId              String
+  type                   String
+  meetingNumber          String?
+  scheduledDate          DateTime? @db.Date
+  heldDate               DateTime? @db.Date
+  status                 String   @default("PLANNED")
+  earlyConducted         Boolean  @default(false)
+  noticeSentDate         DateTime? @db.Date
+  agendaSentDate         DateTime? @db.Date
+  attendanceDate         DateTime? @db.Date
+  minutesCirculatedDate  DateTime? @db.Date
+  commentsReceivedDate   DateTime? @db.Date
+  finalMinutesDate       DateTime? @db.Date
+  notes                  String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  company                Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, type, heldDate])
+  @@index([companyId, type, scheduledDate])
+  @@index([scheduledDate])
+  @@index([heldDate])
+}

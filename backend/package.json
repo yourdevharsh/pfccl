@@ -6,22 +6,39 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:import-storage": "node scripts/migrate-storage-to-db.js",
+    "db:studio": "prisma studio"
   },
   "engines": {
-    "node": ">=20.16.0"
+    "node": ">=20.19.0"
   },
   "dependencies": {
+    "@google/genai": "^2.22.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
-    "multer": "^1.4.5-lts.1",
-    "@google/genai": "^2.22.0",
     "groq-sdk": "^1.6.0",
-    "pdf-parse": "^2.4.5"
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.16.3"
   },
   "allowScripts": {
     "@google/genai@2.23.0": true,
-    "protobufjs@7.6.6": true
+    "protobufjs@7.6.6": true,
+    "@prisma/engines@7.10.0": true,
+    "prisma@7.10.0": true
+  },
+  "devDependencies": {
+    "prisma": "7.10.0"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.0",
+    "mysql2": "^3.24.4"
   }
 }

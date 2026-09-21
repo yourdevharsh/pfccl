@@ -1,3 +1,9 @@
-.transfer-details .detail-card {
-  max-width: 980px;
-}
+.transfer-details .detail-card { max-width: 1080px; }
+.transfer-pulse-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; margin: -4px 0 18px; }
+.transfer-pulse-grid > div { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, #fff, var(--surface-soft)); }
+.transfer-pulse-grid span, .transfer-parties span { display: block; color: var(--ink-500); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.transfer-pulse-grid strong { display: block; margin-top: 8px; color: var(--pfccl-navy); font-size: 16px; line-height: 1.35; }
+.transfer-parties { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.transfer-parties > div { padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-soft); }
+.transfer-parties strong { display: block; margin-top: 7px; color: var(--ink-800); font-size: 12px; line-height: 1.4; }
+@media (max-width: 780px) { .transfer-pulse-grid, .transfer-parties { grid-template-columns: 1fr; } }

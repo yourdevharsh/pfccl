@@ -1,6 +1,16 @@
 export const ROOT_NODE_ID = "pfccl";
 
 // These are UI route definitions, not repository data. Repository records are fetched from the API.
+export const COMPANY_STATUS_FILTERS = [
+  { value: "ALL", label: "All statuses" },
+  { value: "ACTIVE", label: "Active" },
+  { value: "TRANSFERRED", label: "Transferred" },
+  { value: "UNDER_INCORPORATION", label: "Under incorporation" },
+  { value: "DORMANT", label: "Dormant" },
+  { value: "CLOSED", label: "Closed" },
+  { value: "OTHER", label: "Other" },
+];
+
 export const COMPANY_SUB_DETAILS = [
   { key: "master-data", name: "Master Data" },
   { key: "meetings", name: "Meetings" },

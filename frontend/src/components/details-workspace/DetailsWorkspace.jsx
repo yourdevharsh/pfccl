@@ -16,6 +16,14 @@ function DetailsWorkspace({
   onDeleteFile,
   loadingDetail,
   root,
+  meetingFocus,
+  meetingsByCompany,
+  meetingDashboard,
+  onCreateMeeting,
+  onUpdateMeeting,
+  onDeleteMeeting,
+  onRecordEarlyBoardMeeting,
+  onOpenCompanyMeeting,
   aiSelecting = false,
   aiSelections = [],
   onAiSelect,
@@ -60,7 +68,7 @@ function DetailsWorkspace({
       lastClickRef.current = { time: 0, target: null, selectionId: null, wasAlreadySelected: false };
 
       // Never allow a delete action while selection mode is active.
-      if (target.closest(".file-icon-button.danger")) {
+      if (target.closest(".file-icon-button.danger, .meeting-delete-button")) {
         event.preventDefault();
         event.stopPropagation();
       }
@@ -91,7 +99,7 @@ function DetailsWorkspace({
     // Double-click behavior is handled by the second click in
     // handleWorkspaceClickCapture so browser-native editing/opening can run.
     if (!aiSelecting) return;
-    if (event.target instanceof Element && event.target.closest(".file-icon-button.danger")) {
+    if (event.target instanceof Element && event.target.closest(".file-icon-button.danger, .meeting-delete-button")) {
       event.preventDefault();
       event.stopPropagation();
     }
@@ -350,6 +358,14 @@ function DetailsWorkspace({
                   onDeleteFile={onDeleteFile}
                   loadingDetail={loadingDetail}
                   root={root}
+                  meetingFocus={meetingFocus}
+                  meetingsByCompany={meetingsByCompany}
+                  meetingDashboard={meetingDashboard}
+                  onCreateMeeting={onCreateMeeting}
+                  onUpdateMeeting={onUpdateMeeting}
+                  onDeleteMeeting={onDeleteMeeting}
+                  onRecordEarlyBoardMeeting={onRecordEarlyBoardMeeting}
+                  onOpenCompanyMeeting={onOpenCompanyMeeting}
                 />
               </div>
             </div>
