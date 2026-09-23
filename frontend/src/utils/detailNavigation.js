@@ -10,11 +10,12 @@ function getCompanyIncorporationYear(company) {
   return Number.isFinite(year) ? year : null;
 }
 
-function getVisibleCompanies(companies, division, year) {
+function getVisibleCompanies(companies, division, year, status) {
   return companies.filter((company) => {
     if (company.division !== division) return false;
-    if (year === null || year === "all") return true;
-    return getCompanyIncorporationYear(company) === year;
+    if (year !== null && year !== "all" && getCompanyIncorporationYear(company) !== year) return false;
+    if (status && status !== "ALL" && String(company.status || "ACTIVE").toUpperCase() !== status) return false;
+    return true;
   });
 }
 
@@ -56,9 +57,11 @@ export function buildDetailNavigation({
   selectedNodeId,
   companies,
   selectedYearByDivision = {},
+  selectedStatusByDivision = {},
 }) {
   const selection = resolveSelection(selectedNodeId, companies);
   const { division, year } = getContext(selection, selectedYearByDivision);
+  const status = division ? (selectedStatusByDivision[division] ?? "ALL") : "ALL";
 
   if (!division) {
     return {
@@ -70,7 +73,7 @@ export function buildDetailNavigation({
     };
   }
 
-  const visibleCompanies = getVisibleCompanies(companies, division, year);
+  const visibleCompanies = getVisibleCompanies(companies, division, year, status);
   const companyIndex = visibleCompanies.findIndex(
     (company) => company.id === selection.company?.id,
   );

@@ -1,4 +1,4 @@
-import FileField from "../components/FileField";
+import FileField from "../../documents/FileField";
 import "./certificatesDetails.css";
 
 const CERTIFICATE_FIELDS = [
@@ -8,11 +8,11 @@ const CERTIFICATE_FIELDS = [
 function CertificatesDetails({ company, onOpenFile, onUploadFiles, onDeleteFile }) {
   const certificates = company.certificates ?? {};
   return (
-    <div className="detail-page certificates-details" data-ai-company-id={company.id} data-ai-detail-key="certificates">
+    <div className="detail-page certificates-details" data-ai-company-id={company.id} data-ai-detail-key="certificates" data-ai-section="true" data-ai-section-name="Certificates">
       <div className="detail-header"><div className="detail-eyebrow">CERTIFICATES</div><h2 className="detail-title">{company.name}</h2><p className="detail-subtitle">Certificate documents and uploaded files</p></div>
       <div className="detail-card"><h3 className="detail-card-title">Certificate Files</h3><div className="certificate-grid">
         {CERTIFICATE_FIELDS.map(([field, label]) => (
-          <FileField key={field} label={label} field={field} detailKey="certificates" companyId={company.id} value={certificates[field] ?? []} onUpload={onUploadFiles} onDeleteFile={onDeleteFile} onOpenFile={onOpenFile} />
+          <FileField key={field} label={label} field={field} detailKey="certificates" companyId={company.id} value={certificates[field]?.files ?? []} onUpload={onUploadFiles} onDeleteFile={onDeleteFile} onOpenFile={onOpenFile} />
         ))}
       </div></div>
     </div>

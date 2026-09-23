@@ -1,3 +1,9 @@
 .misc-details .detail-card {
-  max-width: 980px;
+  max-width: 1040px;
+}
+
+.misc-details .detail-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgb(118 83 166 / 9%), transparent 12rem),
+    linear-gradient(145deg, #fff, #faf8fd);
 }

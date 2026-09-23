@@ -1,11 +1,19 @@
-.certificate-grid {
+.certificates-details .certificate-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 13px;
 }
-
-@media (max-width: 700px) {
-  .certificate-grid {
-    grid-template-columns: 1fr;
-  }
+.certificates-details .certificate-grid > * {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--pfccl-red);
+  border-radius: 11px;
+  background: linear-gradient(145deg, #fff, var(--pfccl-red-soft));
+  transition: transform var(--ease), border-color var(--ease), box-shadow var(--ease);
 }
+.certificates-details .certificate-grid > *:hover {
+  transform: translateY(-2px);
+  border-color: rgb(181 45 45 / 20%);
+  box-shadow: var(--shadow-sm);
+}
+@media (max-width:700px) { .certificates-details .certificate-grid { grid-template-columns: 1fr; } }

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import { getPrisma } from "./prisma.js";
-import { buildFileUrl, detailPath } from "./storage.js";
+import { buildFileUrl, detailPath, resolveStoredFile } from "./storage.js";
 import { safeJoin } from "../utils/pathSafety.js";
 
 export const MEETING_TYPES = ["BOARD", "AGM", "EGM"];
@@ -27,8 +27,17 @@ function addDays(date, days) {
   return next;
 }
 
+function startOfUtcDay(value = new Date()) {
+  const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
 function daysUntil(date, now = new Date()) {
-  return Math.ceil((date.getTime() - now.getTime()) / 86400000);
+  const target = startOfUtcDay(date);
+  const today = startOfUtcDay(now);
+  if (!target || !today) return null;
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
 }
 
 function financialQuarter(date) {
@@ -51,18 +60,17 @@ function isMonitoredCompany(company) {
   return !["TRANSFERRED", "CLOSED"].includes(String(company.status || "ACTIVE").toUpperCase());
 }
 
-function meetingIntervalDays(company) {
-  return String(company.meetingProfile || "STANDARD_120").toUpperCase() === "STANDARD_120" ? 120 : 120;
-}
-
 function calculateBoardDueDate(company, latestHeldDate) {
   if (latestHeldDate) {
-    if (String(company.meetingProfile || "STANDARD_120").toUpperCase() === "HALF_YEAR_90") {
+    const profile = String(company.meetingProfile || "STANDARD_120").toUpperCase();
+    if (profile === "HALF_YEAR_90") {
       const month = latestHeldDate.getUTCMonth() + 1;
-      if (month <= 6) return new Date(Date.UTC(latestHeldDate.getUTCFullYear(), 8, 30));
-      return new Date(Date.UTC(latestHeldDate.getUTCFullYear() + 1, 2, 31));
+      const year = latestHeldDate.getUTCFullYear();
+      return month <= 6
+        ? new Date(Date.UTC(year, 11, 31))
+        : new Date(Date.UTC(year + 1, 5, 30));
     }
-    return addDays(latestHeldDate, meetingIntervalDays(company));
+    return addDays(latestHeldDate, 120);
   }
 
   const incorporationDate = company.incorporationDate;
@@ -74,7 +82,8 @@ function buildFileRecord(company, row) {
   return {
     id: row.id,
     name: row.originalName,
-    url: buildFileUrl(company, "meetings", row.physicalName),
+    url: buildFileUrl(company, "meetings", row.physicalName, row.id),
+    originalName: row.originalName,
     mimeType: row.mimeType,
     size: row.size,
   };
@@ -153,6 +162,29 @@ function normalizeMeetingInput(payload = {}) {
     dates[field] = parsed;
   }
 
+  if (status === "HELD" && !dates.heldDate) {
+    dates.heldDate = dates.scheduledDate || null;
+    if (!dates.heldDate) {
+      const error = new Error("A held meeting must have a held date.");
+      error.status = 422;
+      throw error;
+    }
+  }
+  if (status === "PLANNED" && dates.heldDate) {
+    const error = new Error("A planned meeting cannot have a held date. Mark it as held first.");
+    error.status = 422;
+    throw error;
+  }
+  if (dates.heldDate && dates.scheduledDate && dates.heldDate.getTime() < dates.scheduledDate.getTime()) {
+    // An early-held meeting is valid, but the explicit early flag is required
+    // so the historical record remains unambiguous.
+    if (!payload.earlyConducted) {
+      const error = new Error("A held date earlier than the scheduled date must be marked as an early-conducted meeting.");
+      error.status = 422;
+      throw error;
+    }
+  }
+
   return {
     type,
     meetingNumber: payload.meetingNumber == null || payload.meetingNumber === "" ? null : String(payload.meetingNumber),
@@ -204,6 +236,26 @@ export async function createMeeting(companyId, payload) {
 
   const data = normalizeMeetingInput(payload);
   if (!data.meetingNumber) data.meetingNumber = await nextMeetingNumber(companyId, data.type);
+  if (company.incorporationDate && data.scheduledDate && data.scheduledDate < company.incorporationDate) {
+    const error = new Error("Meeting scheduled date cannot be before the company's incorporation date.");
+    error.status = 422;
+    throw error;
+  }
+  if (company.incorporationDate && data.heldDate && data.heldDate < company.incorporationDate) {
+    const error = new Error("Meeting held date cannot be before the company's incorporation date.");
+    error.status = 422;
+    throw error;
+  }
+
+  const duplicate = await prisma.meeting.findFirst({
+    where: { companyId, type: data.type, meetingNumber: data.meetingNumber },
+    select: { id: true },
+  });
+  if (duplicate) {
+    const error = new Error(`Meeting number ${data.meetingNumber} already exists for this company and meeting type.`);
+    error.status = 409;
+    throw error;
+  }
 
   const row = await prisma.meeting.create({
     data: { companyId, ...data },
@@ -237,6 +289,27 @@ export async function updateMeeting(companyId, meetingId, payload) {
     earlyConducted: payload.earlyConducted ?? existing.earlyConducted,
     notes: payload.notes ?? existing.notes,
   });
+  if (company?.incorporationDate && data.scheduledDate && data.scheduledDate < company.incorporationDate) {
+    const error = new Error("Meeting scheduled date cannot be before the company's incorporation date.");
+    error.status = 422;
+    throw error;
+  }
+  if (company?.incorporationDate && data.heldDate && data.heldDate < company.incorporationDate) {
+    const error = new Error("Meeting held date cannot be before the company's incorporation date.");
+    error.status = 422;
+    throw error;
+  }
+  if (data.meetingNumber) {
+    const duplicate = await prisma.meeting.findFirst({
+      where: { companyId, type: data.type, meetingNumber: data.meetingNumber, NOT: { id: meetingId } },
+      select: { id: true },
+    });
+    if (duplicate) {
+      const error = new Error(`Meeting number ${data.meetingNumber} already exists for this company and meeting type.`);
+      error.status = 409;
+      throw error;
+    }
+  }
   const row = await prisma.meeting.update({ where: { id: meetingId }, data });
   return hydrateMeeting(company, row);
 }
@@ -254,7 +327,12 @@ export async function deleteMeeting(companyId, meetingId) {
     where: { companyId, detailKey: "meetings", fieldPath: { startsWith: `meeting.${meetingId}.` } },
   });
   for (const file of files) {
-    await fs.rm(safeJoin(detailPath(company, "meetings"), file.physicalName), { force: true });
+    const resolved = await resolveStoredFile(file.id);
+    if (resolved?.filePath) {
+      await fs.rm(resolved.filePath, { force: true });
+    } else {
+      await fs.rm(safeJoin(detailPath(company, "meetings"), file.physicalName), { force: true });
+    }
   }
   await prisma.storedFile.deleteMany({ where: { id: { in: files.map((file) => file.id) } } });
   await prisma.meeting.delete({ where: { id: meetingId } });
@@ -269,7 +347,7 @@ export async function recordEarlyBoardMeeting(companyId, heldDateValue) {
     throw error;
   }
   if (!isMonitoredCompany(company)) {
-    const error = new Error("Transferred or closed companies are not eligible for an active board-meeting reminder update.");
+    const error = new Error("Transferred or closed companies are not eligible for an active Board Meeting reminder update.");
     error.status = 409;
     throw error;
   }
@@ -285,29 +363,77 @@ export async function recordEarlyBoardMeeting(companyId, heldDateValue) {
     where: { companyId, type: "BOARD", heldDate: { not: null } },
     orderBy: { heldDate: "desc" },
   });
-  const dueDate = calculateBoardDueDate(company, latest?.heldDate || null);
-
-  if (!dueDate || heldDate.getTime() >= dueDate.getTime() || financialQuarter(heldDate) !== financialQuarter(dueDate)) {
+  const latestHeld = latest?.heldDate || null;
+  const dueDate = calculateBoardDueDate(company, latestHeld);
+  if (!dueDate) {
+    const error = new Error("A Board Meeting deadline could not be calculated for this company.");
+    error.status = 422;
+    throw error;
+  }
+  if (company.incorporationDate && heldDate.getTime() < company.incorporationDate.getTime()) {
+    const error = new Error("The early meeting date cannot be before the company's incorporation date.");
+    error.status = 422;
+    throw error;
+  }
+  if (latestHeld && heldDate.getTime() <= latestHeld.getTime()) {
+    const error = new Error(`The early meeting date must be after the previous Board Meeting on ${formatDate(latestHeld)}.`);
+    error.status = 422;
+    throw error;
+  }
+  if (heldDate.getTime() >= dueDate.getTime() || financialQuarter(heldDate) !== financialQuarter(dueDate)) {
     const error = new Error(`The early meeting date must be before ${formatDate(dueDate)} and in the same financial quarter as that deadline.`);
     error.status = 422;
     throw error;
   }
 
-  return createMeeting(companyId, {
-    type: "BOARD",
-    meetingNumber: await nextMeetingNumber(companyId, "BOARD"),
-    scheduledDate: formatDate(heldDate),
-    heldDate: formatDate(heldDate),
-    status: "HELD",
-    earlyConducted: true,
+  const activeScheduled = await prisma.meeting.findMany({
+    where: {
+      companyId,
+      type: "BOARD",
+      status: "PLANNED",
+      scheduledDate: { gte: latestHeld || company.incorporationDate, lte: dueDate },
+    },
+    orderBy: { scheduledDate: "asc" },
   });
+
+  let row;
+  if (activeScheduled.length) {
+    const target = activeScheduled[0];
+    row = await prisma.meeting.update({
+      where: { id: target.id },
+      data: { scheduledDate: heldDate, heldDate, status: "HELD", earlyConducted: true },
+    });
+    if (activeScheduled.length > 1) {
+      await prisma.meeting.updateMany({
+        where: { id: { in: activeScheduled.slice(1).map((meeting) => meeting.id) } },
+        data: { status: "CANCELLED", earlyConducted: false },
+      });
+    }
+  } else {
+    row = await prisma.meeting.create({
+      data: {
+        companyId,
+        type: "BOARD",
+        meetingNumber: await nextMeetingNumber(companyId, "BOARD"),
+        scheduledDate: heldDate,
+        heldDate,
+        status: "HELD",
+        earlyConducted: true,
+      },
+    });
+  }
+
+  return hydrateMeeting(company, row);
 }
 
 function dashboardRow(company, boardMeetings, now) {
-  const latestHeld = boardMeetings.find((meeting) => meeting.heldDate)?.heldDate;
+  const latestHeldMeeting = boardMeetings.find((meeting) => meeting.heldDate);
+  const latestHeld = latestHeldMeeting?.heldDate;
   const scheduled = boardMeetings
-    .filter((meeting) => meeting.scheduledDate && new Date(`${meeting.scheduledDate}T00:00:00Z`) >= now && meeting.status !== "CANCELLED")
-    .sort((a, b) => String(a.scheduledDate).localeCompare(String(b.scheduledDate)))[0];
+    .filter((meeting) => meeting.scheduledDate && meeting.status === "PLANNED")
+    .map((meeting) => ({ ...meeting, __scheduledDay: startOfUtcDay(meeting.scheduledDate) }))
+    .filter((meeting) => meeting.__scheduledDay && meeting.__scheduledDay >= startOfUtcDay(now))
+    .sort((a, b) => a.__scheduledDay - b.__scheduledDay)[0];
 
   const monitored = isMonitoredCompany(company);
   const dueDate = monitored ? calculateBoardDueDate(company, latestHeld ? parseDateOnly(latestHeld) : null) : null;
@@ -319,7 +445,9 @@ function dashboardRow(company, boardMeetings, now) {
     division: company.divisionId,
     status: company.status || "ACTIVE",
     meetingProfile: company.meetingProfile || "STANDARD_120",
+    incorporationDate: formatDate(company.incorporationDate),
     lastBoardMeetingDate: latestHeld ? formatDate(latestHeld) : null,
+    lastBoardMeetingEarly: Boolean(latestHeldMeeting?.earlyConducted),
     nextScheduledDate: scheduled?.scheduledDate ? formatDate(scheduled.scheduledDate) : null,
     nextDueDate: dueDate ? formatDate(dueDate) : null,
     daysUntilDue: days,
@@ -352,122 +480,158 @@ export async function getMeetingDashboard() {
   };
 }
 
-export async function getMeetingEvents({ days = 60, overdueDays = 30 } = {}) {
+export async function getMeetingEvents({ days = 365, overdueDays = 30 } = {}) {
   const prisma = getPrisma();
   const companies = await prisma.company.findMany({
-    orderBy: { name: "asc" },
-    include: { meetings: { orderBy: [{ scheduledDate: "asc" }, { heldDate: "desc" }] } },
+    orderBy: [{ divisionId: "asc" }, { name: "asc" }],
+    include: {
+      meetings: {
+        orderBy: [{ scheduledDate: "asc" }, { heldDate: "desc" }, { createdAt: "desc" }],
+      },
+    },
   });
-  const now = new Date();
-  const windowEnd = addDays(now, Number(days) || 60);
-  const windowStart = addDays(now, -(Number(overdueDays) || 30));
+
+  const now = startOfUtcDay(new Date());
+  const futureDays = Math.max(30, Number(days) || 365);
+  const pastDays = Math.max(0, Number(overdueDays) || 30);
+  const windowEnd = addDays(now, futureDays);
+  const windowStart = addDays(now, -pastDays);
   const events = [];
 
+  const pushEvent = ({ id, company, meetingId = null, type, title, date, description }) => {
+    if (!date || date < windowStart || date > windowEnd) return;
+    const delta = daysUntil(date, now);
+    events.push({
+      id,
+      companyId: company.id,
+      meetingId,
+      type,
+      title,
+      companyName: company.name,
+      division: company.divisionId,
+      date: formatDate(date),
+      daysUntil: delta,
+      severity: severityForDays(delta),
+      description,
+    });
+  };
+
   for (const company of companies) {
-    if (isMonitoredCompany(company)) {
-      const boardMeetings = company.meetings.filter((meeting) => meeting.type === "BOARD");
-      const latestHeld = boardMeetings.find((meeting) => meeting.heldDate)?.heldDate;
-      const dueDate = calculateBoardDueDate(company, latestHeld ? parseDateOnly(latestHeld) : null);
-      if (dueDate && dueDate >= windowStart && dueDate <= windowEnd) {
-        const delta = daysUntil(dueDate, now);
-        events.push({
-          id: `board-due-${company.id}-${formatDate(dueDate)}`,
-          companyId: company.id,
-          meetingId: null,
-          type: "BOARD_DUE",
-          title: "Board meeting due",
-          companyName: company.name,
-          division: company.divisionId,
-          date: formatDate(dueDate),
-          daysUntil: delta,
-          severity: severityForDays(delta),
-          description: latestHeld ? `Based on last Board Meeting on ${formatDate(latestHeld)}.` : "First Board Meeting deadline based on incorporation date.",
-        });
-      }
+    const meetings = company.meetings || [];
+    const boardMeetings = meetings
+      .filter((meeting) => meeting.type === "BOARD")
+      .sort((a, b) => {
+        const aDate = a.heldDate ? startOfUtcDay(a.heldDate)?.getTime() ?? -Infinity : -Infinity;
+        const bDate = b.heldDate ? startOfUtcDay(b.heldDate)?.getTime() ?? -Infinity : -Infinity;
+        return bDate - aDate;
+      });
+
+    const latestHeld = boardMeetings.find((meeting) => meeting.heldDate)?.heldDate || null;
+    const dueDate = isMonitoredCompany(company)
+      ? calculateBoardDueDate(company, latestHeld ? parseDateOnly(formatDate(latestHeld)) : null)
+      : null;
+
+    const nextPlannedBoard = boardMeetings
+      .filter((meeting) => meeting.status === "PLANNED" && meeting.scheduledDate)
+      .map((meeting) => ({ ...meeting, date: startOfUtcDay(meeting.scheduledDate) }))
+      .filter((meeting) => meeting.date && meeting.date >= now)
+      .sort((a, b) => a.date - b.date)[0];
+
+    // Show the statutory/compliance due event only when there is no planned
+    // Board Meeting scheduled on or before that calculated deadline.
+    if (dueDate && (!nextPlannedBoard || nextPlannedBoard.date > dueDate)) {
+      pushEvent({
+        id: `board-due-${company.id}-${formatDate(dueDate)}`,
+        company,
+        type: "BOARD_DUE",
+        title: "Board meeting due",
+        date: dueDate,
+        description: latestHeld
+          ? `Based on last Board Meeting on ${formatDate(latestHeld)}.`
+          : "First Board Meeting deadline based on incorporation date.",
+      });
     }
 
-    for (const meeting of company.meetings) {
-      if (meeting.status === "CANCELLED") continue;
+    for (const meeting of meetings) {
+      const isPlanned = meeting.status === "PLANNED";
       const baseName = meeting.type === "BOARD" ? "Board Meeting" : meeting.type === "AGM" ? "AGM" : "EGM";
-      if (meeting.scheduledDate) {
-        const scheduled = new Date(`${formatDate(meeting.scheduledDate)}T00:00:00Z`);
-        if (scheduled >= windowStart && scheduled <= windowEnd) {
-          const delta = daysUntil(scheduled, now);
-          events.push({
-            id: `meeting-${meeting.id}`,
-            companyId: company.id,
-            meetingId: meeting.id,
-            type: meeting.type,
-            title: `${baseName} scheduled`,
-            companyName: company.name,
-            division: company.divisionId,
-            date: formatDate(scheduled),
-            daysUntil: delta,
-            severity: severityForDays(delta),
-            description: meeting.meetingNumber ? `Meeting #${meeting.meetingNumber}.` : "Scheduled meeting.",
-          });
-        }
+      const scheduled = meeting.scheduledDate ? startOfUtcDay(meeting.scheduledDate) : null;
+
+      if (isPlanned && scheduled) {
+        pushEvent({
+          id: `meeting-${meeting.id}`,
+          company,
+          meetingId: meeting.id,
+          type: meeting.type,
+          title: `${baseName} scheduled`,
+          date: scheduled,
+          description: meeting.meetingNumber
+            ? `Meeting #${meeting.meetingNumber}.`
+            : "Scheduled meeting.",
+        });
 
         const taskDates = [
           ["NOTICE_DUE", "Notice due", addDays(scheduled, -7), meeting.noticeSentDate, "Notice should be completed 7 days before the meeting unless the applicable exception is used."],
           ["AGENDA_DUE", "Agenda due", addDays(scheduled, -7), meeting.agendaSentDate, "Agenda / Notes should be completed 7 days before the meeting."],
         ];
+
         for (const [type, title, taskDate, completedDate, description] of taskDates) {
           if (completedDate) continue;
-          if (taskDate >= windowStart && taskDate <= windowEnd) {
-            const delta = daysUntil(taskDate, now);
-            events.push({
-              id: `${type}-${meeting.id}`,
-              companyId: company.id,
-              meetingId: meeting.id,
-              type,
-              title,
-              companyName: company.name,
-              division: company.divisionId,
-              date: formatDate(taskDate),
-              daysUntil: delta,
-              severity: severityForDays(delta),
-              description,
-            });
-          }
+          pushEvent({
+            id: `${type}-${meeting.id}`,
+            company,
+            meetingId: meeting.id,
+            type,
+            title,
+            date: taskDate,
+            description,
+          });
         }
       }
 
+      // Minutes workflow belongs to held meetings, including meetings whose
+      // status has changed from PLANNED to HELD.
       if (meeting.heldDate) {
-        const held = parseDateOnly(formatDate(meeting.heldDate));
+        const held = startOfUtcDay(meeting.heldDate);
         const workflowDates = [
           ["MINUTES_DRAFT_DUE", "Draft minutes due", addDays(held, 15), meeting.minutesCirculatedDate, "Draft minutes should ordinarily be circulated within 15 days."],
           ["MINUTES_FINAL_DUE", "Minutes completion due", addDays(held, 30), meeting.finalMinutesDate, "Minutes should ordinarily be completed / entered within 30 days."],
         ];
+
         if (meeting.minutesCirculatedDate) {
-          const commentsDue = addDays(parseDateOnly(formatDate(meeting.minutesCirculatedDate)), 7);
-          workflowDates.push(["MINUTES_COMMENTS_DUE", "Director comments due", commentsDue, meeting.commentsReceivedDate, "Director comments are ordinarily due within 7 days of circulation."]);
+          const commentsDue = addDays(startOfUtcDay(meeting.minutesCirculatedDate), 7);
+          workflowDates.push([
+            "MINUTES_COMMENTS_DUE",
+            "Director comments due",
+            commentsDue,
+            meeting.commentsReceivedDate,
+            "Director comments are ordinarily due within 7 days of circulation.",
+          ]);
         }
+
         for (const [type, title, taskDate, completedDate, description] of workflowDates) {
           if (completedDate) continue;
-          if (taskDate >= windowStart && taskDate <= windowEnd) {
-            const delta = daysUntil(taskDate, now);
-            events.push({
-              id: `${type}-${meeting.id}`,
-              companyId: company.id,
-              meetingId: meeting.id,
-              type,
-              title,
-              companyName: company.name,
-              division: company.divisionId,
-              date: formatDate(taskDate),
-              daysUntil: delta,
-              severity: severityForDays(delta),
-              description,
-            });
-          }
+          pushEvent({
+            id: `${type}-${meeting.id}`,
+            company,
+            meetingId: meeting.id,
+            type,
+            title,
+            date: taskDate,
+            description,
+          });
         }
       }
     }
   }
 
   return {
-    generatedAt: now.toISOString(),
-    events: events.sort((a, b) => new Date(`${a.date}T00:00:00Z`) - new Date(`${b.date}T00:00:00Z`) || a.companyName.localeCompare(b.companyName)),
+    generatedAt: new Date().toISOString(),
+    events: events.sort(
+      (a, b) =>
+        new Date(`${a.date}T00:00:00Z`) - new Date(`${b.date}T00:00:00Z`) ||
+        (a.companyName || "").localeCompare(b.companyName || "") ||
+        (a.meetingId || "").localeCompare(b.meetingId || ""),
+    ),
   };
 }

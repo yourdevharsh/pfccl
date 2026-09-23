@@ -17,12 +17,14 @@ function DetailsNavigation({
   selectedNodeId,
   companies,
   selectedYearByDivision,
+  selectedStatusByDivision,
   onSelect,
 }) {
   const navigation = buildDetailNavigation({
     selectedNodeId,
     companies,
     selectedYearByDivision,
+    selectedStatusByDivision,
   });
 
   const canGoBack = Boolean(navigation.previousId);

@@ -1,11 +1,17 @@
 .pdf-pane {
   min-width: 0;
   min-height: 720px;
-  border: 1px solid var(--line);
+  border: 1px solid rgb(30 45 83 / 12%);
   border-radius: var(--radius-md);
   background: var(--surface);
   overflow: hidden;
   box-shadow: var(--shadow-md);
+  transition: box-shadow var(--ease), transform var(--ease), border-color var(--ease);
+}
+
+.pdf-pane:hover {
+  border-color: rgb(30 45 83 / 19%);
+  box-shadow: 0 16px 34px rgb(13 29 61 / 15%);
 }
 
 .pdf-pane-expanded {
@@ -15,25 +21,38 @@
 }
 
 .pdf-pane-minimized {
-  width: 50px;
-  flex: 0 0 50px;
+  width: 54px;
+  flex: 0 0 54px;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 8px 5px;
   position: relative;
-  background: linear-gradient(180deg, #fff, var(--pfccl-navy-soft));
+  background:
+    linear-gradient(180deg, #fff, var(--pfccl-red-soft) 46%, var(--pfccl-navy-soft));
+}
+
+.pdf-pane-minimized::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--pfccl-red), var(--pfccl-gold), var(--pfccl-navy));
 }
 
 .pdf-pane-header {
-  min-height: 56px;
+  min-height: 58px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 8px 10px 8px 14px;
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, #fff, #fbfcfe);
+  border-bottom: 1px solid rgb(30 45 83 / 10%);
+  background:
+    radial-gradient(circle at 0% 0%, rgb(181 45 45 / 8%), transparent 10rem),
+    linear-gradient(180deg, #fff, #fafcff);
 }
 
 .pdf-pane-title {
@@ -42,19 +61,19 @@
   align-items: center;
   gap: 8px;
   color: var(--ink-800);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .pdf-pane-title svg {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   flex: 0 0 auto;
   fill: none;
   stroke: var(--pfccl-red);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.7;
+  stroke-width: 1.8;
 }
 
 .pdf-pane-title span {
@@ -71,26 +90,27 @@
 .workspace-icon-button,
 .pdf-rail-expand,
 .pdf-rail-close {
-  width: 30px;
-  height: 30px;
+  width: 31px;
+  height: 31px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 9px;
   background: transparent;
   color: var(--ink-600);
   cursor: pointer;
-  transition: background var(--ease), border-color var(--ease), color var(--ease), transform var(--ease);
+  transition: background var(--ease), border-color var(--ease), color var(--ease), transform var(--ease), box-shadow var(--ease);
 }
 
 .workspace-icon-button:hover,
 .pdf-rail-expand:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   background: var(--pfccl-gold-soft);
   border-color: var(--pfccl-gold-border);
   color: var(--pfccl-navy);
+  box-shadow: var(--shadow-xs);
 }
 
 .workspace-icon-button.danger,
@@ -101,7 +121,7 @@
 .workspace-icon-button.danger:hover,
 .pdf-rail-close:hover {
   background: var(--pfccl-red-soft);
-  border-color: #efc3c3;
+  border-color: rgb(181 45 45 / 20%);
   color: var(--pfccl-red);
 }
 
@@ -114,13 +134,14 @@
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.8;
+  stroke-width: 1.9;
 }
 
 .pdf-viewer-frame {
   min-height: 0;
   flex: 1;
-  background: #3e434d;
+  background:
+    linear-gradient(135deg, #1f2530, #3a414d);
 }
 
 .pdf-viewer {
@@ -129,13 +150,22 @@
   min-height: 660px;
   display: block;
   border: 0;
+  background: #2b3038;
 }
 
 .pdf-unavailable {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
   padding: 40px 24px;
-  color: #e8ebf0;
-  font-size: 13px;
+  color: #f1f3f7;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
   text-align: center;
+  background:
+    radial-gradient(circle at 50% 0%, rgb(244 197 16 / 13%), transparent 14rem),
+    linear-gradient(135deg, #202733, #3a424d);
 }
 
 .pdf-rail-expand,
@@ -152,9 +182,10 @@
   overflow: hidden;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
-  color: var(--ink-600);
-  font-size: 10px;
-  font-weight: 800;
+  color: var(--ink-700);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .04em;
 }
 
 .pdf-rail-label span {

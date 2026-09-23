@@ -4,8 +4,9 @@ import Groq from "groq-sdk";
 import { GoogleGenAI } from "@google/genai";
 import { PDFParse } from "pdf-parse";
 import { config } from "../config.js";
+import { getPrisma } from "./prisma.js";
 import { DETAIL_KEYS } from "../constants.js";
-import { findCompany, getFilesAtPath, readDetail, detailPath } from "./storage.js";
+import { findCompany, getFilesAtPath, readDetail, detailPath, resolveStoredFile } from "./storage.js";
 import { assertSafeDetailKey, assertSafeSegment, safeJoin } from "../utils/pathSafety.js";
 
 const pdfTextCache = new Map();
@@ -65,17 +66,6 @@ function contextTooLarge(tokens) {
   return error;
 }
 
-function filePhysicalName(file) {
-  const raw = file?.url || "";
-  if (!raw) return "";
-  try {
-    const pathname = new URL(raw, "http://localhost").pathname;
-    return decodeURIComponent(pathname.split("/").pop() || "");
-  } catch {
-    return decodeURIComponent(String(raw).split("/").pop() || "");
-  }
-}
-
 async function findSelectedPdf(selection) {
   if (!selection?.companyId || !selection?.detailKey || !selection?.fileId) {
     const error = new Error("PDF selection is missing companyId, detailKey, or fileId.");
@@ -84,56 +74,37 @@ async function findSelectedPdf(selection) {
   }
   assertSafeSegment(selection.companyId, "company id");
   assertSafeDetailKey(selection.detailKey, DETAIL_KEYS);
-  if (!/^[a-zA-Z0-9_.-]+$/.test(String(selection.field || ""))) {
-    const error = new Error("Invalid PDF field path.");
-    error.status = 400;
-    throw error;
-  }
-
-  const found = await findCompany(selection.companyId);
-  if (!found) {
-    const error = new Error("Selected PDF company was not found.");
-    error.status = 404;
-    throw error;
-  }
-
-  const detail = await readDetail(found.company, selection.detailKey);
-  const files = getFilesAtPath(detail, selection.field || "") || [];
-  const file = files.find((item) => item?.id === selection.fileId);
-  if (!file) {
+  const resolved = await resolveStoredFile(selection.fileId);
+  if (!resolved || resolved.row.companyId !== selection.companyId || resolved.row.detailKey !== selection.detailKey) {
     const error = new Error(`Selected PDF "${selection.name || selection.fileId}" was not found in the repository.`);
     error.status = 404;
     throw error;
   }
-
-  const physicalName = filePhysicalName(file);
-  if (!physicalName) {
-    const error = new Error("Selected PDF has no stored file path.");
-    error.status = 422;
+  if (selection.field && resolved.row.fieldPath !== selection.field) {
+    const error = new Error("Selected PDF no longer matches its original field.");
+    error.status = 409;
     throw error;
   }
-
-  const filePath = safeJoin(detailPath(found.company, selection.detailKey), physicalName);
-  return { file, filePath, company: found.company };
+  return { file: { id: resolved.row.id, name: resolved.row.originalName, mimeType: resolved.row.mimeType, size: resolved.row.size }, filePath: resolved.filePath, company: await (async () => { const found = await findCompany(selection.companyId); return found.company; })() };
 }
 
-async function extractPdfText(selection) {
-  const selected = await findSelectedPdf(selection);
-  const stat = await fs.stat(selected.filePath);
-  const cacheKey = `${selection.fileId}:${stat.size}:${stat.mtimeMs}`;
+async function extractPdfRecord(fileRecord, companyId, detailKey) {
+  if (!fileRecord?.id) return null;
+  const resolved = await resolveStoredFile(fileRecord.id);
+  if (!resolved || resolved.row.companyId !== companyId || resolved.row.detailKey !== detailKey) return null;
+  try { await fs.access(resolved.filePath); } catch { return null; }
+  const stat = await fs.stat(resolved.filePath);
+  const cacheKey = `${resolved.row.id}:${stat.size}:${stat.mtimeMs}`;
   const cached = pdfTextCache.get(cacheKey);
   if (cached) return cached;
-
-  const buffer = await fs.readFile(selected.filePath);
+  const isPdf = String(resolved.row.mimeType || "").toLowerCase() === "application/pdf" || /\.pdf$/i.test(resolved.row.originalName || "");
+  if (!isPdf) return { name: resolved.row.originalName, text: "", pages: undefined, nonPdf: true, size: resolved.row.size, mimeType: resolved.row.mimeType };
+  const buffer = await fs.readFile(resolved.filePath);
   const parser = new PDFParse({ data: buffer });
   try {
     const result = await parser.getText();
     const text = normalizeText(result.text, config.aiMaxPdfCharsPerFile);
-    const entry = {
-      name: selected.file.name || selection.name || path.basename(selected.filePath),
-      text,
-      pages: result.total ?? undefined,
-    };
+    const entry = { name: resolved.row.originalName, text, pages: result.total ?? undefined, mimeType: resolved.row.mimeType };
     pdfTextCache.set(cacheKey, entry);
     return entry;
   } finally {
@@ -141,16 +112,15 @@ async function extractPdfText(selection) {
   }
 }
 
-async function findFileRecord(company, detailKey, fileRecord) {
-  const physicalName = filePhysicalName(fileRecord);
-  if (!physicalName) return null;
-  const filePath = safeJoin(detailPath(company, detailKey), physicalName);
-  try {
-    await fs.access(filePath);
-  } catch {
-    return null;
+async function extractPdfText(selection) {
+  const selected = await findSelectedPdf(selection);
+  const pdf = await extractPdfRecord(selected.file, selection.companyId, selection.detailKey);
+  if (!pdf || pdf.nonPdf) {
+    const error = new Error("The selected file is not a readable PDF.");
+    error.status = 422;
+    throw error;
   }
-  return { ...fileRecord, physicalName, filePath };
+  return pdf;
 }
 
 async function collectDetailContext(company, detailKey, detailValue) {
@@ -158,65 +128,81 @@ async function collectDetailContext(company, detailKey, detailValue) {
 
   async function visit(value, pathParts) {
     if (value === null || value === undefined) return;
-
     if (Array.isArray(value)) {
-      for (let index = 0; index < value.length; index += 1) {
-        await visit(value[index], [...pathParts, String(index)]);
-      }
+      for (let index = 0; index < value.length; index += 1) await visit(value[index], [...pathParts, String(index)]);
       return;
     }
-
     if (typeof value !== "object") {
       const label = pathParts.join(".") || "value";
       blocks.push(`FIELD NAME: ${label}\nFIELD VALUE: ${normalizeText(value, config.aiMaxElementChars) || "(empty)"}`);
       return;
     }
-
     if (Array.isArray(value.files)) {
       const fieldPath = pathParts.join(".") || "files";
       for (const file of value.files) {
-        const resolved = await findFileRecord(company, detailKey, file);
-        const name = normalizeText(file?.name || file?.originalname || "Unnamed file", 500);
-        if (!resolved) {
+        const name = normalizeText(file?.name || file?.originalName || file?.originalname || "Unnamed file", 500);
+        const isPdf = String(file?.mimeType || file?.mimetype || "").toLowerCase() === "application/pdf" || /\.pdf$/i.test(name);
+        if (!file?.id) {
+          blocks.push(`FILE FIELD: ${fieldPath}\nFILE NAME: ${name}\nFILE STATUS: Legacy metadata without a file record.`);
+          continue;
+        }
+        const pdf = isPdf ? await extractPdfRecord(file, company.id, detailKey) : await extractPdfRecord(file, company.id, detailKey);
+        if (!pdf) {
           blocks.push(`FILE FIELD: ${fieldPath}\nFILE NAME: ${name}\nFILE STATUS: Stored file could not be read.`);
           continue;
         }
-
-        const isPdf = String(file?.mimeType || file?.mimetype || "").toLowerCase() === "application/pdf" || /\.pdf$/i.test(name);
-        if (isPdf) {
-          const stat = await fs.stat(resolved.filePath);
-          const cacheKey = `${file.id}:${stat.size}:${stat.mtimeMs}`;
-          let pdf = pdfTextCache.get(cacheKey);
-          if (!pdf) {
-            const buffer = await fs.readFile(resolved.filePath);
-            const parser = new PDFParse({ data: buffer });
-            try {
-              const result = await parser.getText();
-              pdf = {
-                name,
-                text: normalizeText(result.text, config.aiMaxPdfCharsPerFile),
-                pages: result.total ?? undefined,
-              };
-              pdfTextCache.set(cacheKey, pdf);
-            } finally {
-              await parser.destroy();
-            }
-          }
-          blocks.push(`FILE FIELD: ${fieldPath}\nFILE NAME: ${pdf.name}\nFILE TYPE: PDF\nEXTRACTED TEXT:\n${pdf.text || "(No extractable text was found in this PDF.)"}`);
-        } else {
-          blocks.push(`FILE FIELD: ${fieldPath}\nFILE NAME: ${name}\nFILE TYPE: ${normalizeText(file?.mimeType || file?.mimetype || "unknown", 120)}\nFILE SIZE: ${Number(file?.size || 0)} bytes`);
+        if (pdf.nonPdf) {
+          blocks.push(`FILE FIELD: ${fieldPath}\nFILE NAME: ${name}\nFILE TYPE: ${normalizeText(pdf.mimeType || "unknown", 120)}\nFILE SIZE: ${Number(pdf.size || 0)} bytes`);
+          continue;
         }
+        blocks.push(`FILE FIELD: ${fieldPath}\nFILE NAME: ${pdf.name}\nFILE TYPE: PDF\nEXTRACTED TEXT:\n${pdf.text || "(No extractable text was found in this PDF.)"}`);
       }
       return;
     }
-
-    for (const [key, child] of Object.entries(value)) {
-      await visit(child, [...pathParts, key]);
-    }
+    for (const [key, child] of Object.entries(value)) await visit(child, [...pathParts, key]);
   }
 
   await visit(detailValue, []);
   return blocks;
+}
+
+async function collectStructuredMeetingsContext(companyId) {
+  const prisma = getPrisma();
+  const meetings = await prisma.meeting.findMany({ where: { companyId }, orderBy: [{ scheduledDate: "desc" }, { heldDate: "desc" }] });
+  const blocks = [];
+  for (const meeting of meetings) {
+    const lines = [
+      `Meeting ID: ${meeting.id}`,
+      `Type: ${meeting.type}`,
+      `Meeting Number: ${meeting.meetingNumber || "(not recorded)"}`,
+      `Scheduled Date: ${meeting.scheduledDate ? formatAiDate(meeting.scheduledDate) : "(not recorded)"}`,
+      `Held Date: ${meeting.heldDate ? formatAiDate(meeting.heldDate) : "(not recorded)"}`,
+      `Status: ${meeting.status}`,
+      `Early Conducted: ${meeting.earlyConducted ? "Yes" : "No"}`,
+      `Notice Sent: ${meeting.noticeSentDate ? formatAiDate(meeting.noticeSentDate) : "(not recorded)"}`,
+      `Agenda Sent: ${meeting.agendaSentDate ? formatAiDate(meeting.agendaSentDate) : "(not recorded)"}`,
+      `Attendance: ${meeting.attendanceDate ? formatAiDate(meeting.attendanceDate) : "(not recorded)"}`,
+      `Draft Minutes Circulated: ${meeting.minutesCirculatedDate ? formatAiDate(meeting.minutesCirculatedDate) : "(not recorded)"}`,
+      `Comments Received: ${meeting.commentsReceivedDate ? formatAiDate(meeting.commentsReceivedDate) : "(not recorded)"}`,
+      `Final Minutes: ${meeting.finalMinutesDate ? formatAiDate(meeting.finalMinutesDate) : "(not recorded)"}`,
+      `Notes: ${normalizeText(meeting.notes || "", config.aiMaxElementChars) || "(none)"}`,
+    ];
+    const files = await prisma.storedFile.findMany({ where: { companyId, detailKey: "meetings", fieldPath: { startsWith: `meeting.${meeting.id}.` } }, orderBy: { createdAt: "asc" } });
+    for (const file of files) {
+      const extracted = await extractPdfRecord(file, companyId, "meetings");
+      if (!extracted) continue;
+      lines.push(`Document: ${extracted.name}`);
+      if (extracted.nonPdf) lines.push(`Document type: ${extracted.mimeType || "unknown"}; size: ${extracted.size || 0} bytes`);
+      else lines.push(`Document text:\n${extracted.text || "(No extractable text.)"}`);
+    }
+    blocks.push(lines.join("\n"));
+  }
+  return blocks;
+}
+
+function formatAiDate(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toISOString().slice(0, 10);
 }
 
 async function buildSystemPrompt(selections) {
@@ -247,6 +233,15 @@ async function buildSystemPrompt(selections) {
       assertSafeDetailKey(selection.detailKey, DETAIL_KEYS);
       const detail = await readDetail(found.company, selection.detailKey);
       const detailBlocks = await collectDetailContext(found.company, selection.detailKey, detail);
+      if (selection.detailKey === "master-data") {
+        detailBlocks.unshift(
+          `COMPANY MASTER FIELDS\nCompany Name: ${normalizeText(found.company.name, 500)}\nCompany ID: ${found.company.id}\nDivision: ${found.company.division}\nIncorporation Date: ${found.company.incorporationDate ? formatAiDate(found.company.incorporationDate) : "(not recorded)"}\nStatus: ${normalizeText(found.company.status || "", 300) || "(not recorded)"}\nBoard Meeting Profile: ${normalizeText(found.company.meetingProfile || "", 300) || "(not recorded)"}`
+        );
+      }
+      if (selection.detailKey === "meetings") {
+        const structuredMeetingBlocks = await collectStructuredMeetingsContext(selection.companyId);
+        detailBlocks.push(...structuredMeetingBlocks.map((block) => `STRUCTURED MEETING RECORD:\n${block}`));
+      }
       contextBlocks.push(
         `SOURCE TYPE: SUB-DETAIL SECTION\nSECTION: ${normalizeText(selection.fieldName || selection.detailKey, 300)}\nCOMPANY: ${normalizeText(found.company.name, 300)}\nDETAIL KEY: ${selection.detailKey}\nALL SELECTED SECTION DATA:\n${detailBlocks.length ? detailBlocks.join("\n\n---\n\n") : "(This section has no stored values or files.)"}`,
       );

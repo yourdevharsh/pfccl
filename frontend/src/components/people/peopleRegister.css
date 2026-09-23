@@ -1,0 +1,95 @@
+.people-register-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.people-register-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.people-register-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.person-row {
+  position: relative;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--pfccl-navy);
+  border-radius: 11px;
+  background: linear-gradient(145deg, #fff, var(--surface-soft));
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--ease), border-color var(--ease), box-shadow var(--ease), background var(--ease), border-left-color var(--ease);
+}
+
+.person-row:nth-child(2n) { border-left-color: var(--pfccl-gold); }
+
+.person-row:hover {
+  transform: translateY(-2px);
+  border-color: var(--pfccl-gold-border);
+  background: linear-gradient(145deg, #fff, #fffdf4);
+  box-shadow: var(--shadow-sm);
+}
+
+.person-row-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.director-grid { grid-template-columns: 1.5fr 1fr 1.2fr 1fr 1fr .9fr; }
+.shareholder-grid { grid-template-columns: 1.5fr .8fr .9fr .8fr 1fr; }
+
+.person-row-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+.danger-button {
+  border-color: rgb(181 45 45 / 18%);
+  color: var(--pfccl-red);
+}
+
+.danger-button:hover {
+  background: var(--pfccl-red-soft);
+  border-color: rgb(181 45 45 / 27%);
+  color: var(--pfccl-red-strong);
+}
+
+.people-register-empty {
+  padding: 18px;
+  border: 1px dashed var(--line-dark);
+  border-radius: 10px;
+  color: var(--ink-500);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  background: linear-gradient(135deg, #fff, var(--surface-soft));
+}
+
+@media (max-width:1100px) {
+  .director-grid,
+  .shareholder-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width:620px) {
+  .director-grid,
+  .shareholder-grid { grid-template-columns:1fr; }
+
+  .people-register-head {
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .people-register-actions { justify-content:space-between; }
+}

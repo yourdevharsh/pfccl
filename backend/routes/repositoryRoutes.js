@@ -18,6 +18,7 @@ import {
   saveCompany,
   saveRootRecord,
   saveUploadedFile,
+  resolveStoredFile,
 } from "../services/storage.js";
 import { asyncRoute, sendData } from "../utils/http.js";
 import { assertSafeDetailKey, assertSafeSegment, safeJoin } from "../utils/pathSafety.js";
@@ -177,6 +178,40 @@ router.delete(
     sendData(res, { company: updatedCompany, detail });
   }),
 );
+
+async function serveStoredFile(req, res) {
+  assertSafeSegment(req.params.fileId, "file id");
+  const resolved = await resolveStoredFile(req.params.fileId);
+  if (!resolved) {
+    const error = new Error("File not found.");
+    error.status = 404;
+    throw error;
+  }
+  try {
+    await fs.access(resolved.filePath);
+  } catch (accessError) {
+    if (accessError.code === "ENOENT") {
+      const error = new Error("File not found.");
+      error.status = 404;
+      throw error;
+    }
+    throw accessError;
+  }
+  const originalName = String(resolved.row.originalName || "file").replace(/[^a-zA-Z0-9._ -]/g, "_");
+  res.setHeader("Content-Type", resolved.row.mimeType || "application/octet-stream");
+  res.setHeader(
+    "Content-Disposition",
+    `${req.query.download === "1" ? "attachment" : "inline"}; filename="${originalName}"`,
+  );
+  if (req.method === "HEAD") {
+    res.status(200).end();
+    return;
+  }
+  res.sendFile(resolved.filePath);
+}
+
+router.get("/files/:fileId", asyncRoute(serveStoredFile));
+router.head("/files/:fileId", asyncRoute(serveStoredFile));
 
 router.get(
   "/files/:division/:year/:companyId/:detailDirectory/:fileName",

@@ -1,0 +1,90 @@
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.form-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-field label {
+  color: var(--ink-700);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+
+.form-field input,
+.form-field textarea,
+.form-field select {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: linear-gradient(180deg, #fff, #fafcff);
+  color: var(--ink-950);
+  outline: none;
+  transition: border-color var(--ease), box-shadow var(--ease), background var(--ease), transform var(--ease);
+  font: inherit;
+}
+
+.form-field input,
+.form-field select {
+  min-height: 42px;
+  padding: 0 11px;
+}
+
+.form-field textarea {
+  min-height: 108px;
+  padding: 10px 11px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.form-field input:hover,
+.form-field textarea:hover,
+.form-field select:hover {
+  border-color: var(--pfccl-gold-border);
+  background: #fffef8;
+}
+
+.form-field input:focus,
+.form-field textarea:focus,
+.form-field select:focus {
+  border-color: var(--pfccl-navy);
+  box-shadow: 0 0 0 4px rgb(30 45 83 / 9%), 0 8px 18px rgb(30 45 83 / 5%);
+  background: #fff;
+}
+
+.form-field input:disabled,
+.form-field textarea:disabled,
+.form-field select:disabled {
+  background: var(--surface-tint);
+  color: var(--ink-600);
+}
+
+.form-field-hint,
+.form-field-hint.form-field-hint {
+  color: var(--ink-400);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.form-field-error {
+  color: var(--pfccl-red);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.details-workspace.ai-selection-mode .form-field {
+  position: relative;
+  border-radius: 12px;
+  transition: background var(--ease), box-shadow var(--ease), transform var(--ease);
+}
+
+.details-workspace.ai-selection-mode .form-field:hover {
+  background: rgb(244 197 16 / 7%);
+  box-shadow: 0 0 0 4px rgb(244 197 16 / 7%);
+}

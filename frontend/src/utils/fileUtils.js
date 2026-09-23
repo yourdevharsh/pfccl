@@ -1,49 +1,112 @@
+function firstFileName(value) {
+  if (!value || typeof value !== "object") return "";
+  return (
+    value.originalName ||
+    value.originalname ||
+    value.name ||
+    value.fileName ||
+    value.filename ||
+    value.metadata?.originalName ||
+    value.metadata?.name ||
+    value.file?.originalName ||
+    value.file?.name ||
+    value.file?.metadata?.originalName ||
+    ""
+  );
+}
+
 export function getFileName(file) {
   if (!file) return "";
-  if (typeof file === "string") return file.split("/").pop() || "File";
-  return file.name || file.originalName || "File";
+  if (typeof file === "string") return decodeURIComponent(file.split("/").pop() || "File");
+  if (Array.isArray(file.files)) return getFileName(file.files[0]);
+  const direct = firstFileName(file);
+  if (direct) return direct;
+  const rawUrl = file.url || file.downloadUrl || file.path || file.storageUrl || "";
+  if (rawUrl) {
+    try {
+      const parsed = new URL(rawUrl, window.location.href);
+      const last = decodeURIComponent(parsed.pathname.split("/").pop() || "");
+      if (last) return last;
+    } catch {
+      const last = decodeURIComponent(String(rawUrl).split("/").pop() || "");
+      if (last && !/^files?$/i.test(last)) return last;
+    }
+  }
+  return "File";
 }
 
 export function getFileUrl(file) {
   if (!file) return "";
+  const apiBase = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 
-  const rawUrl = typeof file === "string"
-    ? file
-    : file.url || file.downloadUrl || file.path || "";
-
-  if (!rawUrl) return "";
-
-  // Stored file records from older backend versions use /files/... while
-  // the Express API is mounted below /api. Keep those records working.
-  if (rawUrl.startsWith("/files/")) {
-    const apiBase = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
-    return `${apiBase}${rawUrl}`;
+  // The file id is the canonical repository identity. Prefer it even when a
+  // legacy absolute/path URL is still present in older database records.
+  if (typeof file === "object" && file.id) {
+    return `${apiBase}/files/${encodeURIComponent(file.id)}`;
   }
 
-  return rawUrl;
+  const rawUrl = typeof file === "string" ? file : file.url || file.downloadUrl || file.path || "";
+  if (!rawUrl) return "";
+
+  try {
+    const parsed = new URL(rawUrl, window.location.href);
+    if (parsed.pathname.startsWith("/api/files/")) return `${apiBase}${parsed.pathname.slice("/api".length)}${parsed.search}`;
+    if (parsed.pathname.startsWith("/files/")) return `${apiBase}${parsed.pathname}${parsed.search}`;
+    if (parsed.origin !== window.location.origin) return parsed.href;
+  } catch {
+    // Fall through to the path normalization below for malformed/relative URLs.
+  }
+
+  if (rawUrl.startsWith("/api/files/")) return `${apiBase}${rawUrl.slice("/api".length)}`;
+  if (rawUrl.startsWith("/files/")) return `${apiBase}${rawUrl}`;
+  if (rawUrl.startsWith("/")) return rawUrl;
+  return `${apiBase}/${rawUrl.replace(/^\/+/, "")}`;
+}
+
+
+export function getFileCandidates(file) {
+  if (!file) return [];
+  const candidates = [];
+  const canonical = getFileUrl(file);
+  if (canonical) candidates.push(canonical);
+
+  if (typeof file !== "string") {
+    const rawUrl = file.url || file.downloadUrl || file.path || "";
+    if (rawUrl) {
+      const fallbackFile = { ...file, id: undefined };
+      const fallback = getFileUrl(fallbackFile);
+      if (fallback && !candidates.includes(fallback)) candidates.push(fallback);
+    }
+  }
+  return candidates;
 }
 
 export function isPdfFile(file) {
   if (!file) return false;
+  const name = getFileName(file);
   if (typeof file === "string") return /\.pdf(?:$|[?#])/i.test(file);
-  return file.mimeType === "application/pdf" || file.type === "application/pdf" || /\.pdf$/i.test(getFileName(file));
+  return String(file.mimeType || file.type || file.metadata?.mimeType || "").toLowerCase() === "application/pdf" || /\.pdf$/i.test(name);
 }
 
 export function createFileDownload(file) {
-  const url = getFileUrl(file);
-  if (!url) return;
+  let url = getFileUrl(file);
+  if (!url) return false;
+  if (url.includes("/files/")) {
+    url += url.includes("?") ? "&download=1" : "?download=1";
+  }
   const link = document.createElement("a");
   link.href = url;
-  link.download = getFileName(file);
+  link.download = getFileName(file) || "File";
   link.target = "_blank";
   link.rel = "noreferrer";
   document.body.appendChild(link);
   link.click();
   link.remove();
+  return true;
 }
 
 export function getFileKey(file) {
   if (!file) return "";
   if (typeof file === "string") return `url:${file}`;
-  return file.id ? `id:${file.id}` : `${file.url || ""}:${file.name || ""}:${file.size || ""}`;
+  return file.id ? `id:${file.id}` : `${file.url || file.downloadUrl || ""}:${getFileName(file)}:${file.size || ""}`;
 }

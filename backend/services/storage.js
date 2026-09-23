@@ -52,6 +52,36 @@ export function detailPath(company, detailKey) {
   return safeJoin(companyPath(company), DETAIL_DIRECTORIES[detailKey]);
 }
 
+async function findExistingCompanyBase(company) {
+  const preferred = companyPath(company);
+  try {
+    await fs.access(preferred);
+    return preferred;
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+
+  const divisionRoot = safeJoin(config.storageRoot, company.division);
+  let years = [];
+  try {
+    years = await fs.readdir(divisionRoot, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT") return preferred;
+    throw error;
+  }
+  for (const entry of years) {
+    if (!entry.isDirectory() || !/^\d{4}$/.test(entry.name)) continue;
+    const candidate = safeJoin(divisionRoot, entry.name, company.id);
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  return preferred;
+}
+
 export async function ensureStorage() {
   await fs.mkdir(config.storageRoot, { recursive: true });
   for (const division of DIVISIONS) {
@@ -200,7 +230,8 @@ function buildFileRecordPayload(company, detailKey, row) {
   return {
     id: row.id,
     name: row.originalName,
-    url: buildFileUrl(company, detailKey, row.physicalName),
+    originalName: row.originalName,
+    url: buildFileUrl(company, detailKey, row.physicalName, row.id),
     mimeType: row.mimeType,
     size: row.size,
   };
@@ -211,8 +242,14 @@ async function hydrateDetail(company, detailKey, data) {
   const storedFiles = await getStoredFilesForCompany(company.id, detailKey);
   for (const row of storedFiles) {
     const existing = getFilesAtPath(detail, row.fieldPath) || [];
-    existing.push(buildFileRecordPayload(company, detailKey, row));
-    setFilesAtPath(detail, row.fieldPath, existing);
+    const deduped = existing.filter((item) => {
+      if (!item || typeof item !== "object") return true;
+      if (item.id && item.id === row.id) return false;
+      const legacyUrl = String(item.url || item.downloadUrl || "");
+      return !legacyUrl.includes(encodeURIComponent(row.physicalName));
+    });
+    deduped.push(buildFileRecordPayload(company, detailKey, row));
+    setFilesAtPath(detail, row.fieldPath, deduped);
   }
   return detail;
 }
@@ -414,7 +451,7 @@ export async function saveCompany(company) {
 }
 
 export async function moveCompanyIfLocationChanged(previous, next) {
-  const oldBase = companyPath(previous);
+  const oldBase = await findExistingCompanyBase(previous);
   const newBase = companyPath(next);
   if (oldBase === newBase) return;
 
@@ -433,7 +470,8 @@ export async function moveCompanyIfLocationChanged(previous, next) {
 }
 
 export async function deleteCompany(company) {
-  await fs.rm(companyPath(company), { recursive: true, force: true });
+  const base = await findExistingCompanyBase(company);
+  await fs.rm(base, { recursive: true, force: true });
   await getPrisma().company.delete({ where: { id: company.id } });
 }
 
@@ -520,12 +558,17 @@ export async function removeFile(company, detailKey, field, fileId) {
     throw error;
   }
 
-  await fs.rm(safeJoin(detailPath(company, detailKey), target.physicalName), { force: true });
+  const filePath = await findExistingStoredFilePath(company, target);
+  if (filePath) await fs.rm(filePath, { force: true });
   await prisma.storedFile.delete({ where: { id: target.id } });
   return readDetail(company, detailKey);
 }
 
-export function buildFileUrl(company, detailKey, physicalName) {
+export function buildFileUrl(company, detailKey, physicalName, fileId) {
+  if (fileId) {
+    const relative = `/api/files/${encodeURIComponent(fileId)}`;
+    return config.publicBaseUrl ? `${config.publicBaseUrl}${relative}` : relative;
+  }
   const relative = `/api/files/${encodeURIComponent(company.division)}/${encodeURIComponent(String(companyYear(company)))}/${encodeURIComponent(company.id)}/${encodeURIComponent(DETAIL_DIRECTORIES[detailKey])}/${encodeURIComponent(physicalName)}`;
   return config.publicBaseUrl ? `${config.publicBaseUrl}${relative}` : relative;
 }
@@ -543,4 +586,55 @@ export async function getCompanyStats() {
 export async function findStoredFile(fileId) {
   assertSafeSegment(fileId, "file id");
   return getPrisma().storedFile.findUnique({ where: { id: fileId } });
+}
+
+async function findExistingStoredFilePath(company, row) {
+  const companyShape = rowToCompanyShape(company);
+  const preferredPath = safeJoin(detailPath(companyShape, row.detailKey), row.physicalName);
+  try {
+    await fs.access(preferredPath);
+    return preferredPath;
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+
+  // Backward compatibility: older file records were URL/path-based and could
+  // survive a company year move. Search the same division/company across all
+  // year folders and known detail folders before declaring the file missing.
+  const division = company?.divisionId || company?.division;
+  if (!division) return null;
+  const divisionRoot = safeJoin(config.storageRoot, division);
+  let years = [];
+  try {
+    years = await fs.readdir(divisionRoot, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+
+  for (const yearEntry of years) {
+    if (!yearEntry.isDirectory() || !/^\d{4}$/.test(yearEntry.name)) continue;
+    const companyRoot = safeJoin(divisionRoot, yearEntry.name, company.id);
+    for (const detailDirectory of Object.values(DETAIL_DIRECTORIES)) {
+      const candidate = safeJoin(companyRoot, detailDirectory, row.physicalName);
+      try {
+        await fs.access(candidate);
+        return candidate;
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+    }
+  }
+
+  return null;
+}
+
+export async function resolveStoredFile(fileId) {
+  const row = await getPrisma().storedFile.findUnique({ where: { id: fileId } });
+  if (!row) return null;
+  const company = await getPrisma().company.findUnique({ where: { id: row.companyId } });
+  if (!company) return null;
+  const filePath = await findExistingStoredFilePath(company, row);
+  if (!filePath) return null;
+  return { row, company: rowToCompanyShape(company), filePath };
 }

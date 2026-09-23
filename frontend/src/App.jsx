@@ -41,16 +41,34 @@ function App() {
     });
   }, [repository.divisions]);
 
+  const revealCompanyContext = useCallback((companyId, fallbackDivision) => {
+    const company = companies.find((item) => item.id === companyId);
+    const meetingRow = (repository.meetingDashboard?.companies || []).find((row) => row.companyId === companyId);
+    const division = company?.division || meetingRow?.division || fallbackDivision;
+    if (division) {
+      const incorporationYear = Number.parseInt(String(company?.incorporationDate || meetingRow?.incorporationDate || "").slice(0, 4), 10);
+      if (Number.isInteger(incorporationYear)) updateSelectedYearByDivision((current) => ({ ...current, [division]: incorporationYear }));
+      const status = String(company?.status || meetingRow?.status || "ACTIVE").toUpperCase();
+      updateSelectedStatusByDivision((current) => ({ ...current, [division]: status || "ALL" }));
+    }
+    return company;
+  }, [companies, repository.meetingDashboard]);
+
   const handleSelectNode = useCallback((nodeId) => {
+    const company = companies.find((item) => item.id === nodeId || nodeId.startsWith(`${item.id}-`));
+    if (company) revealCompanyContext(company.id, company.division);
     updateSelectedNodeId(nodeId);
     if (!nodeId.endsWith?.("-meetings")) setMeetingFocus(null);
-  }, []);
+  }, [companies, revealCompanyContext]);
 
   const handleYearChange = useCallback((division, year) => {
-    updateSelectedYearByDivision((current) => ({ ...current, [division]: year === "all" ? "all" : Number(year) }));
+    const normalizedYear = year === "all" ? "all" : Number(year);
+    updateSelectedYearByDivision((current) => ({ ...current, [division]: normalizedYear }));
     updateSelectedNodeId((currentNodeId) => {
       const company = companies.find((item) => item.id === currentNodeId || currentNodeId.startsWith(`${item.id}-`));
-      return company?.division === division ? division : currentNodeId;
+      if (!company || company.division !== division) return currentNodeId;
+      const companyYear = Number.parseInt(String(company.incorporationDate || "").slice(0, 4), 10);
+      return normalizedYear === "all" || companyYear === normalizedYear ? currentNodeId : division;
     });
   }, [companies]);
 
@@ -58,13 +76,14 @@ function App() {
     updateSelectedStatusByDivision((current) => ({ ...current, [division]: status }));
     updateSelectedNodeId((currentNodeId) => {
       const company = companies.find((item) => item.id === currentNodeId || currentNodeId.startsWith(`${item.id}-`));
-      return company?.division === division && status !== "ALL" && String(company.status || "ACTIVE").toUpperCase() !== status
-        ? division
-        : currentNodeId;
+      if (!company || company.division !== division) return currentNodeId;
+      return status === "ALL" || String(company.status || "ACTIVE").toUpperCase() === status ? currentNodeId : division;
     });
   }, [companies]);
 
   const addCompany = useCallback(async (division) => {
+    updateSelectedYearByDivision((current) => ({ ...current, [division]: getCurrentYear() }));
+    updateSelectedStatusByDivision((current) => ({ ...current, [division]: "ALL" }));
     const company = await repository.addCompany(division);
     if (company?.id) updateSelectedNodeId(company.id);
   }, [repository.addCompany]);
@@ -77,18 +96,26 @@ function App() {
   }, [companies, repository.deleteCompany, selectedNodeId]);
 
   const openMeetingEvent = useCallback((event) => {
+    revealCompanyContext(event.companyId, event.division);
     updateSelectedNodeId(`${event.companyId}-meetings`);
     setMeetingFocus({ companyId: event.companyId, meetingId: event.meetingId || null });
-  }, []);
+  }, [revealCompanyContext]);
 
   const openCompanyMeeting = useCallback((companyId) => {
+    revealCompanyContext(companyId);
     updateSelectedNodeId(`${companyId}-meetings`);
     setMeetingFocus({ companyId, meetingId: null });
-  }, []);
+  }, [revealCompanyContext]);
 
   const handleAiSelect = useCallback((item) => {
     if (!item) return;
-    setAiSelections((current) => current.some((existing) => existing.id === item.id) ? current : [...current, item]);
+    setAiSelections((current) => {
+      const existingIndex = current.findIndex((existing) => existing.id === item.id);
+      if (existingIndex < 0) return [...current, item];
+      const next = [...current];
+      next[existingIndex] = item;
+      return next;
+    });
   }, []);
 
   const removeAiSelection = useCallback((selectionId) => {
@@ -132,6 +159,7 @@ function App() {
               selectedNodeId={selectedNodeId}
               companies={companies}
               selectedYearByDivision={selectedYearByDivision}
+              selectedStatusByDivision={selectedStatusByDivision}
               updateCompanies={repository.updateCompany}
               onSelect={handleSelectNode}
               onUploadFiles={repository.uploadFiles}
@@ -147,6 +175,7 @@ function App() {
               onRecordEarlyBoardMeeting={repository.recordEarlyBoardMeeting}
               onOpenCompanyMeeting={openCompanyMeeting}
               aiSelecting={aiSelecting}
+              aiSelections={aiSelections}
               onAiSelect={handleAiSelect}
               onAiRemoveSelection={removeAiSelection}
             />

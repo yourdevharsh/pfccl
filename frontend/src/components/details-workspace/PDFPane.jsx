@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { getFileName, getFileUrl } from "../../utils/fileUtils";
+import { getFileName } from "../../utils/fileUtils";
+import PDFViewer from "../documents/PDFViewer";
 import "./pdfPane.css";
 
 function MinimizeIcon() {
@@ -43,8 +43,6 @@ function PDFPane({
   paneNumber,
 }) {
   const fileName = getFileName(file);
-  const objectUrl = useMemo(() => getFileUrl(file), [file]);
-
   if (!expanded) {
     return (
       <aside
@@ -119,17 +117,7 @@ function PDFPane({
         </div>
       </div>
       <div className="pdf-viewer-frame">
-        {objectUrl ? (
-          <iframe
-            title={`${paneNumber}: ${fileName}`}
-            src={objectUrl}
-            className="pdf-viewer"
-          />
-        ) : (
-          <div className="pdf-unavailable">
-            This file cannot be previewed in the browser.
-          </div>
-        )}
+        <PDFViewer file={file} title={`${paneNumber}: ${fileName}`} />
       </div>
     </section>
   );

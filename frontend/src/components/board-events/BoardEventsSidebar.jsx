@@ -1,21 +1,6 @@
+import { formatDate, formatDaysRemaining } from "../ui/dataHelpers";
 import "./boardEventsSidebar.css";
 
-function formatEventDate(value) {
-  if (!value) return "—";
-  return new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
-
-function urgencyLabel(event) {
-  if (event.daysUntil < 0) return `${Math.abs(event.daysUntil)}d overdue`;
-  if (event.daysUntil === 0) return "Today";
-  if (event.daysUntil === 1) return "Tomorrow";
-  return `${event.daysUntil}d`;
-}
 
 const eventTypeLabel = {
   BOARD_DUE: "BOARD DUE",
@@ -67,12 +52,12 @@ export default function BoardEventsSidebar({ events = [], onOpenEvent }) {
               <div className="board-event-content">
                 <div className="board-event-topline">
                   <span className="board-event-type">{eventTypeLabel[event.type] || event.type}</span>
-                  <span className="board-event-urgency">{urgencyLabel(event)}</span>
+                  <span className="board-event-urgency">{formatDaysRemaining(event.daysUntil)}</span>
                 </div>
                 <strong className="board-event-title">{event.title}</strong>
                 <span className="board-event-company">{event.companyName}</span>
                 <div className="board-event-meta">
-                  <span>{formatEventDate(event.date)}</span>
+                  <span>{formatDate(event.date, "—")}</span>
                   <span>{event.division?.toUpperCase()}</span>
                 </div>
               </div>

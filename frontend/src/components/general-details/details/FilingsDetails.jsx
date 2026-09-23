@@ -1,7 +1,7 @@
-import FileField from "../components/FileField";
-import StatusPill from "../components/StatusPill";
-import CompactTable from "../components/CompactTable";
-import { countPending, getFilingRecords, firstPath, formatDate } from "../components/dataHelpers";
+import FileField from "../../documents/FileField";
+import StatusPill from "../../ui/StatusPill";
+import CompactTable from "../../ui/CompactTable";
+import { countPending, getFilingRecords, firstPath, formatDate } from "../../ui/dataHelpers";
 import "./filingsDetails.css";
 
 const FILING_FIELDS = [
@@ -32,7 +32,7 @@ function FilingsDetails({ company, onOpenFile, onUploadFiles, onDeleteFile }) {
   ];
 
   return (
-    <div className="detail-page filings-details" data-ai-company-id={company.id} data-ai-detail-key="filings">
+    <div className="detail-page filings-details" data-ai-company-id={company.id} data-ai-detail-key="filings" data-ai-section="true" data-ai-section-name="Filings">
       <div className="detail-header"><div className="detail-eyebrow">FILINGS</div><h2 className="detail-title">{company.name}</h2><p className="detail-subtitle">ROC documents plus a compact filing register.</p></div>
 
       <div className="filing-pulse-grid">

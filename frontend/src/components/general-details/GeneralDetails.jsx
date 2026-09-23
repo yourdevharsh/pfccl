@@ -10,18 +10,25 @@ import CertificatesDetails from "./details/CertificatesDetails";
 import MiscDetails from "./details/MiscDetails";
 import "./generalDetails.css";
 
-function GeneralDetails({ selectedNodeId, companies, root, updateCompanies, onSelect, onOpenFile, onUploadFiles, onDeleteFile, loadingDetail, meetingFocus, meetingsByCompany, meetingDashboard, onCreateMeeting, onUpdateMeeting, onDeleteMeeting, onRecordEarlyBoardMeeting, onOpenCompanyMeeting }) {
+export default function GeneralDetails({ selectedNodeId, companies, root, updateCompanies, onSelect, onOpenFile, onUploadFiles, onDeleteFile, loadingDetail, meetingFocus, meetingsByCompany, meetingDashboard, onCreateMeeting, onUpdateMeeting, onDeleteMeeting, onRecordEarlyBoardMeeting, onOpenCompanyMeeting }) {
   const selection = resolveSelection(selectedNodeId, companies);
-  if (loadingDetail && selection.type === "sub-detail") {
-    return <div className="detail-empty-state"><h2>Loading details…</h2><p>Fetching this section from the repository.</p></div>;
+  const topLevel = new Set(["pfccl", "umpp", "itp"]);
+  if (!topLevel.has(selectedNodeId) && selection.type === "empty") {
+    return <div className="detail-empty-state"><h2>Loading details…</h2><p>Fetching the selected company from the repository.</p></div>;
   }
+  if (loadingDetail && selection.type === "sub-detail") return <div className="detail-empty-state"><h2>Loading details…</h2><p>Fetching this section from the repository.</p></div>;
 
   switch (selection.type) {
-    case "root": return <PfcclDetails companies={companies} root={root} onSelect={onSelect} meetingDashboard={meetingDashboard} onRecordEarlyBoardMeeting={onRecordEarlyBoardMeeting} onOpenCompanyMeeting={onOpenCompanyMeeting} />;
-    case "division": return <DivisionDetails division={selection.division} companies={companies} onSelect={onSelect} onOpenCompanyMeeting={onOpenCompanyMeeting} meetingDashboard={meetingDashboard} />;
-    case "company": return <CompanyDetails company={selection.company} updateCompanies={updateCompanies} onSelect={onSelect} onOpenCompanyMeeting={onOpenCompanyMeeting} />;
+    case "root":
+      return <PfcclDetails companies={companies} root={root} onSelect={onSelect} meetingDashboard={meetingDashboard} onRecordEarlyBoardMeeting={onRecordEarlyBoardMeeting} onOpenCompanyMeeting={onOpenCompanyMeeting} />;
+    case "division":
+      return <DivisionDetails division={selection.division} companies={companies} onSelect={onSelect} onOpenCompanyMeeting={onOpenCompanyMeeting} meetingDashboard={meetingDashboard} />;
+    case "company": {
+      const meetingRow = (meetingDashboard?.companies || []).find((row) => row.companyId === selection.company.id);
+      return <CompanyDetails company={selection.company} updateCompanies={updateCompanies} onSelect={onSelect} onOpenCompanyMeeting={onOpenCompanyMeeting} meetingRow={meetingRow} onRecordEarlyBoardMeeting={onRecordEarlyBoardMeeting} />;
+    }
     case "sub-detail": {
-      const props = { company: selection.company, updateCompanies, onOpenFile, onUploadFiles, onDeleteFile, meetingFocus, meetingRecords: meetingsByCompany?.[selection.company.id] || [], onCreateMeeting, onUpdateMeeting, onDeleteMeeting };
+      const props = { company: selection.company, updateCompanies, onOpenFile, onUploadFiles, onDeleteFile, meetingFocus, meetingRecords: meetingsByCompany?.[selection.company.id] || [], meetingRow: (meetingDashboard?.companies || []).find((row) => row.companyId === selection.company.id), onCreateMeeting, onUpdateMeeting, onDeleteMeeting, onRecordEarlyBoardMeeting };
       switch (selection.detailKey) {
         case "master-data": return <MasterDataDetails {...props} />;
         case "meetings": return <MeetingsDetails {...props} />;
@@ -35,4 +42,3 @@ function GeneralDetails({ selectedNodeId, companies, root, updateCompanies, onSe
     default: return <div className="detail-empty-state"><h2>Select a tree node</h2><p>Choose PFCCL, a division, a company, or a company sub-detail.</p></div>;
   }
 }
-export default GeneralDetails;

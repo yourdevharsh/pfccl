@@ -1,15 +1,7 @@
 import { useMemo, useState } from "react";
 import { COMPANY_STATUS_FILTERS } from "../../../config/treeConfig";
+import { formatDate, labelFromStatus } from "../../ui/dataHelpers";
 import "./divisionDetails.css";
-
-function statusLabel(status) {
-  return String(status || "ACTIVE").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function formatDate(value) {
-  if (!value) return "—";
-  return new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
-}
 
 function DivisionDetails({ division, companies, onSelect, onOpenCompanyMeeting, meetingDashboard }) {
   const [status, setStatus] = useState("ALL");
@@ -36,7 +28,7 @@ function DivisionDetails({ division, companies, onSelect, onOpenCompanyMeeting, 
       </div>
 
       <div className="detail-card">
-        <div className="division-list-toolbar">
+        <div className="division-list-toolbar" data-ai-ignore="true">
           <div>
             <h3 className="detail-card-title">Companies</h3>
             <span className="division-list-caption">Filter the full division register without leaving the division.</span>
@@ -57,7 +49,7 @@ function DivisionDetails({ division, companies, onSelect, onOpenCompanyMeeting, 
                   <button type="button" className="division-company-main" onClick={() => onSelect(company.id)}>
                     <span>
                       <strong>{company.name}</strong>
-                      <small>{statusLabel(company.status)} · {company.id}</small>
+                      <small>{labelFromStatus(company.status)} · {company.id}</small>
                     </span>
                   </button>
                   <div className={`division-meeting-pulse severity-${meeting?.severity || "low"}`}>

@@ -99,7 +99,7 @@ export const meetingApi = {
     return request("/meetings/dashboard");
   },
 
-  getEvents({ days = 60, overdueDays = 30 } = {}) {
+  getEvents({ days = 365, overdueDays = 30 } = {}) {
     return request(`/meetings/events?days=${days}&overdueDays=${overdueDays}`);
   },
 

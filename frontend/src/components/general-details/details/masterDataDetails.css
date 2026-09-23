@@ -1,27 +1,63 @@
-.master-data-details .detail-card { max-width: 1080px; }
+.master-data-details .detail-card { max-width: 1120px; }
 
 .master-data-quick-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 11px;
   padding: 14px;
 }
 
-.master-data-quick-grid > div { min-width: 0; padding: 12px; border-radius: 10px; background: var(--surface-soft); border: 1px solid var(--line); }
-.master-data-quick-grid span { display: block; margin-bottom: 7px; color: var(--ink-500); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.master-data-quick-grid strong { color: var(--ink-800); font-size: 14px; }
+.master-data-quick-grid > div {
+  min-width: 0;
+  position: relative;
+  padding: 13px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #fff, var(--pfccl-navy-soft));
+  border: 1px solid rgb(30 45 83 / 11%);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease);
+}
+
+.master-data-quick-grid > div:nth-child(2n) {
+  background: linear-gradient(145deg, #fff, var(--pfccl-gold-soft));
+}
+
+.master-data-quick-grid > div:hover {
+  transform: translateY(-2px);
+  border-color: var(--pfccl-gold-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.master-data-quick-grid span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--ink-500);
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.master-data-quick-grid strong {
+  color: var(--pfccl-navy-strong);
+  font-size: 13px;
+  font-weight: 950;
+}
 
 .data-count-badge {
   display: inline-grid;
   place-items: center;
-  min-width: 28px;
-  height: 28px;
+  min-width: 29px;
+  height: 29px;
   padding: 0 8px;
   border-radius: 999px;
-  background: var(--pfccl-navy-soft);
-  color: var(--pfccl-navy);
-  font-size: 11px;
-  font-weight: 800;
+  background:
+    linear-gradient(135deg, var(--pfccl-navy), var(--pfccl-navy-deep));
+  color: var(--pfccl-gold-bright);
+  font-size: 10px;
+  font-weight: 950;
+  box-shadow: 0 5px 12px rgb(30 45 83 / 16%);
 }
 
 @media (max-width: 850px) {

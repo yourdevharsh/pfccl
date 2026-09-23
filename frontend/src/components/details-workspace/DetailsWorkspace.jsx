@@ -11,6 +11,7 @@ function DetailsWorkspace({
   companies,
   updateCompanies,
   selectedYearByDivision,
+  selectedStatusByDivision,
   onSelect,
   onUploadFiles,
   onDeleteFile,
@@ -39,71 +40,134 @@ function DetailsWorkspace({
       lastUsed: 0,
     },
   ]);
-  const lastClickRef = useRef({ time: 0, target: null });
+  const pendingSelectionRef = useRef(null);
+  const lastClickSelectionRef = useRef(null);
 
-  function handleWorkspaceClickCapture(event) {
-    if (!aiSelecting) return;
-    const target = event.target instanceof Element ? event.target : null;
-    if (!target) return;
-
-    if (target.closest(".details-main-header, .details-main-actions, .details-navigation, .workspace-icon-button, .details-main-rail, .details-reopen-button")) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
+  function clearPendingSelection() {
+    if (pendingSelectionRef.current) {
+      window.clearTimeout(pendingSelectionRef.current);
+      pendingSelectionRef.current = null;
     }
+  }
 
-    const now = Date.now();
-    const interactionTarget = target.closest("button, label, input, textarea, select, .file-entry, .detail-field, .detail-card, .detail-page, .pdf-pane") || target;
-    const previous = lastClickRef.current;
-    const isDoubleLike = previous.target === interactionTarget && now - previous.time < 500;
+  function isWorkspaceControl(target) {
+    return target.closest(
+      '.details-main-header, .details-main-actions, .details-navigation, .workspace-icon-button, .details-main-rail, .details-reopen-button, [data-ai-ignore="true"], .details-main-content > .details-main-scroll + *'
+    );
+  }
 
-    if (isDoubleLike) {
-      // The first click was intentionally blocked for selection. On the second
-      // click we remove only the selection that the first click just created,
-      // then allow the native interaction to happen (edit/open/navigation).
-      if (previous.selectionId && !previous.wasAlreadySelected) {
-        onAiRemoveSelection?.(previous.selectionId);
-      }
+  function isDangerousAction(target) {
+    return Boolean(
+      target.closest(".file-icon-button.danger, .meeting-delete-button, .danger-button")
+    );
+  }
 
-      lastClickRef.current = { time: 0, target: null, selectionId: null, wasAlreadySelected: false };
-
-      // Never allow a delete action while selection mode is active.
-      if (target.closest(".file-icon-button.danger, .meeting-delete-button")) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      return;
-    }
-
-    const selection = getAiSelectionFromTarget(target);
-    const wasAlreadySelected = Boolean(selection && aiSelections.some((item) => item.id === selection.id));
-    lastClickRef.current = {
-      time: now,
-      target: interactionTarget,
-      selectionId: selection?.id || null,
-      wasAlreadySelected,
-    };
-
-    if (selection) {
-      onAiSelect?.(selection);
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
+  function blockSelectionInteraction(event) {
     event.preventDefault();
     event.stopPropagation();
   }
 
-  function handleWorkspaceDoubleClickCapture(event) {
-    // Double-click behavior is handled by the second click in
-    // handleWorkspaceClickCapture so browser-native editing/opening can run.
+  function handleWorkspaceMouseDownCapture(event) {
     if (!aiSelecting) return;
-    if (event.target instanceof Element && event.target.closest(".file-icon-button.danger, .meeting-delete-button")) {
-      event.preventDefault();
-      event.stopPropagation();
+
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || isWorkspaceControl(target)) return;
+
+    if (isDangerousAction(target)) {
+      blockSelectionInteraction(event);
+      return;
+    }
+
+    const selection = getAiSelectionFromTarget(target);
+
+    // A second press is the user's explicit double-click interaction. Never
+    // select it; remove the transient first-click selection and allow the
+    // browser/app to perform its normal action.
+    if (event.detail >= 2) {
+      clearPendingSelection();
+      if (selection) onAiRemoveSelection?.(selection.id);
+      lastClickSelectionRef.current = null;
+      return;
+    }
+
+    if (!selection) {
+      blockSelectionInteraction(event);
+      return;
+    }
+
+    lastClickSelectionRef.current = selection;
+    onAiSelect?.(selection);
+
+    // Prevent native focus/change/navigation on the first click. This is the
+    // important part for dates, text inputs, selects and file controls.
+    blockSelectionInteraction(event);
+  }
+
+  function handleWorkspaceClickCapture(event) {
+    if (!aiSelecting) return;
+
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || isWorkspaceControl(target)) return;
+
+    if (isDangerousAction(target)) {
+      blockSelectionInteraction(event);
+      return;
+    }
+
+    // The second click of a double-click is allowed to reach the real target.
+    if (event.detail >= 2) {
+      clearPendingSelection();
+      return;
+    }
+
+    // MouseDown already handled the single-click selection. Keep click from
+    // triggering any native action if the browser still emits it.
+    blockSelectionInteraction(event);
+  }
+
+  function handleWorkspaceDoubleClickCapture(event) {
+    if (!aiSelecting) return;
+    clearPendingSelection();
+
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || isWorkspaceControl(target)) return;
+
+    if (isDangerousAction(target)) {
+      blockSelectionInteraction(event);
+      return;
+    }
+
+    const latest = getAiSelectionFromTarget(target);
+    if (latest) onAiRemoveSelection?.(latest.id);
+    lastClickSelectionRef.current = null;
+    // Deliberately do not preventDefault: double-click is the explicit
+    // interaction that opens/edits/navigates the target.
+  }
+
+  function handleWorkspaceKeyDownCapture(event) {
+    if (!aiSelecting) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || isWorkspaceControl(target)) return;
+
+    if (target.matches("input:not([type='button']):not([type='submit']), textarea, select")) {
+      // Do not allow typing/changing a field while selection mode is active.
+      // Double-click first returns control to the native field interaction.
+      if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     }
   }
+
+  useEffect(() => {
+    if (!aiSelecting) return;
+    const active = document.activeElement;
+    if (!(active instanceof Element)) return;
+    if (!active.closest(".details-workspace")) return;
+    if (active.matches("input, textarea, select, button")) active.blur();
+  }, [aiSelecting]);
+
+  useEffect(() => () => clearPendingSelection(), []);
 
   useEffect(() => {
     const usage = ++usageRef.current;
@@ -115,6 +179,15 @@ function DetailsWorkspace({
       ),
     );
   }, [selectedNodeId]);
+
+  useEffect(() => {
+    const liveCompanyIds = new Set((companies || []).map((company) => company.id));
+    setPanels((current) => current.filter((panel) => {
+      if (panel.type !== "pdf") return true;
+      const companyId = panel.file?.__aiContext?.companyId;
+      return !companyId || liveCompanyIds.has(companyId);
+    }));
+  }, [companies]);
 
   function minimizeOldestExpanded(nextPanels, exceptId) {
     const expandedPanels = nextPanels.filter(
@@ -272,7 +345,7 @@ function DetailsWorkspace({
   const pdfPanels = panels.filter((panel) => panel.type === "pdf");
 
   return (
-    <div className={`details-workspace ${aiSelecting ? "ai-selection-mode" : ""}`} onClickCapture={handleWorkspaceClickCapture} onDoubleClickCapture={handleWorkspaceDoubleClickCapture}>
+    <div className={`details-workspace ${aiSelecting ? "ai-selection-mode" : ""}`} onMouseDownCapture={handleWorkspaceMouseDownCapture} onClickCapture={handleWorkspaceClickCapture} onDoubleClickCapture={handleWorkspaceDoubleClickCapture} onKeyDownCapture={handleWorkspaceKeyDownCapture}>
       {mainPanel && !mainPanel.closed && (
         <section
           className={`details-main-pane ${
@@ -315,6 +388,7 @@ function DetailsWorkspace({
                     selectedNodeId={selectedNodeId}
                     companies={companies}
                     selectedYearByDivision={selectedYearByDivision}
+                    selectedStatusByDivision={selectedStatusByDivision}
                     onSelect={onSelect}
                   />
                   <div>
