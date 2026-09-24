@@ -208,7 +208,7 @@
   font-size: 11px;
   line-height: 1.5;
   background:
-    radial-gradient(circle at 50% 0%, rgb(244 197 16 / 8%), transparent 12rem),
+    linear-gradient(transparent, transparent),
     var(--surface-soft);
 }
 

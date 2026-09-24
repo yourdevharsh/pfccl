@@ -6,7 +6,7 @@
   border-left: 4px solid var(--pfccl-navy);
   border-radius: 13px;
   background:
-    radial-gradient(circle at 100% 0%, rgb(244 197 16 / 10%), transparent 6rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(145deg, #fff, var(--surface-soft));
   text-align: left;
   cursor: pointer;
@@ -21,7 +21,7 @@
   transform: translateY(-4px);
   border-color: var(--pfccl-gold-border);
   background:
-    radial-gradient(circle at 100% 0%, rgb(244 197 16 / 18%), transparent 7rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(145deg, var(--pfccl-gold-soft), #fff);
   box-shadow: var(--shadow-md);
 }

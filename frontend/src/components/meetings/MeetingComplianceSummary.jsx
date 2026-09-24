@@ -12,17 +12,24 @@ function urgencyText(row) {
 export function MeetingComplianceSummary({ row, onRecordEarly, compact = false }) {
   if (!row) return <div className="meeting-compliance-empty">Board Meeting compliance data is not loaded yet.</div>;
   return (
-    <div className={`meeting-compliance-summary ${compact ? "compact" : ""}`}>
-      <div className="meeting-compliance-main">
+    <div className={`meeting-compliance-summary ${compact ? "compact" : ""}`} data-ai-section="true" data-ai-company-id={row.companyId} data-ai-detail-key="meetings" data-ai-section-name="Board Meeting Compliance">
+      <div
+        className="meeting-compliance-main"
+        data-ai-field="true"
+        data-ai-field-name="Next Board Meeting due date"
+        data-ai-company-id={row.companyId}
+        data-ai-detail-key="meetings"
+        data-ai-field-path="compliance.nextDueDate"
+      >
         <span className="meeting-compliance-eyebrow">BOARD MEETING COMPLIANCE</span>
         <strong>{formatDate(row.nextDueDate, "Not calculated")}</strong>
         <span className={`meeting-compliance-count severity-${row.severity || "low"}`}>{urgencyText(row)}</span>
       </div>
       <div className="meeting-compliance-stats">
-        <div><span>Last held</span><b>{formatDate(row.lastBoardMeetingDate, "—")}{row.lastBoardMeetingEarly ? " · Early" : ""}</b></div>
-        <div><span>Next scheduled</span><b>{formatDate(row.nextScheduledDate, "—")}</b></div>
-        <div><span>Rule</span><b>{row.meetingProfile === "HALF_YEAR_90" ? "Half-year / 90d" : "120-day"}</b></div>
-        <div><span>State</span><StatusPill value={row.status} /></div>
+        <div data-ai-field="true" data-ai-field-name="Last Board Meeting date" data-ai-company-id={row.companyId} data-ai-detail-key="meetings" data-ai-field-path="compliance.lastBoardMeetingDate"><span>Last held</span><b>{formatDate(row.lastBoardMeetingDate, "—")}{row.lastBoardMeetingEarly ? " · Early" : ""}</b></div>
+        <div data-ai-field="true" data-ai-field-name="Next scheduled Board Meeting date" data-ai-company-id={row.companyId} data-ai-detail-key="meetings" data-ai-field-path="compliance.nextScheduledDate"><span>Next scheduled</span><b>{formatDate(row.nextScheduledDate, "—")}</b></div>
+        <div data-ai-field="true" data-ai-field-name="Board Meeting compliance rule" data-ai-company-id={row.companyId} data-ai-detail-key="meetings" data-ai-field-path="compliance.meetingProfile"><span>Rule</span><b>{row.meetingProfile === "HALF_YEAR_90" ? "Half-year / 90d" : "120-day"}</b></div>
+        <div data-ai-field="true" data-ai-field-name="Company monitoring state" data-ai-company-id={row.companyId} data-ai-detail-key="meetings" data-ai-field-path="compliance.status"><span>State</span><StatusPill value={row.status} /></div>
       </div>
       {row.canRecordEarly && onRecordEarly && <EarlyMeetingControl row={row} onRecordEarly={onRecordEarly} />}
     </div>

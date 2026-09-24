@@ -321,7 +321,7 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 100% 0%, rgb(244 197 16 / 14%), transparent 9rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(180deg, transparent, rgb(30 45 83 / 2%));
 }
 

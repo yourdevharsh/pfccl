@@ -211,7 +211,7 @@
 .detail-button.primary {
   border-color: var(--pfccl-navy);
   background:
-    radial-gradient(circle at 100% 0%, rgb(244 197 16 / 20%), transparent 5rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(135deg, var(--pfccl-navy), var(--pfccl-navy-strong));
   color: #fff;
   box-shadow: 0 10px 20px rgb(30 45 83 / 18%);
@@ -220,7 +220,7 @@
 .detail-button.primary:hover {
   border-color: var(--pfccl-navy-deep);
   background:
-    radial-gradient(circle at 100% 0%, rgb(244 197 16 / 26%), transparent 5rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(135deg, #294477, var(--pfccl-navy-deep));
   color: #fff;
   box-shadow: 0 14px 26px rgb(30 45 83 / 24%);
@@ -232,7 +232,7 @@
   border-radius: var(--radius-md);
   text-align: center;
   background:
-    radial-gradient(circle at 50% 0%, rgb(244 197 16 / 10%), transparent 18rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(180deg, #fff, var(--surface-soft));
   box-shadow: var(--shadow-sm);
 }

@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { createFileDownload, getFileName, isPdfFile } from "../../utils/fileUtils";
+import { createFileDownload, getFileName, getFileUrl, isPdfFile } from "../../utils/fileUtils";
 import "./fileField.css";
 
 function DownloadIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 18v2h14v-2" /></svg>; }
@@ -7,14 +7,7 @@ function DeleteIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path
 function PlusIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>; }
 
 export default function FileField({ label, value, field, detailKey, companyId, onUpload, onDeleteFile, onOpenFile, accept = "*/*" }) {
-  const rawFiles = Array.isArray(value)
-    ? value
-    : Array.isArray(value?.files)
-      ? value.files
-      : value
-        ? [value]
-        : [];
-  const files = rawFiles.filter(Boolean);
+  const files = Array.isArray(value) ? value.filter(Boolean) : value ? [value] : [];
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const inputId = `file-${useId().replace(/[^a-zA-Z0-9_-]/g, "-")}`;
@@ -56,8 +49,9 @@ export default function FileField({ label, value, field, detailKey, companyId, o
       <div className="document-field-list">
         {files.map((file, index) => {
           const name = getFileName(file) || "File";
-          const canOpen = Boolean(file?.id || file?.url || file?.downloadUrl) && isPdfFile(file);
-          const canDownload = Boolean(file?.id || file?.url || file?.downloadUrl || typeof file === "string");
+          const fileUrl = getFileUrl(file);
+          const canOpen = Boolean(fileUrl) && isPdfFile(file);
+          const canDownload = Boolean(fileUrl);
           return (
             <div
               className="document-entry file-entry"
@@ -69,6 +63,7 @@ export default function FileField({ label, value, field, detailKey, companyId, o
               data-ai-company-id={companyId}
               data-ai-detail-key={detailKey}
               data-ai-field={field}
+              data-ai-field-path={field}
             >
               <button
                 type="button"

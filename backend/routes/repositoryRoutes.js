@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import multer from "multer";
 import fs from "node:fs/promises";
 import { config } from "../config.js";
-import { DETAIL_KEYS } from "../constants.js";
+import { DETAIL_KEYS, DIVISIONS } from "../constants.js";
 import {
   createCompany,
   deleteCompany,
@@ -28,6 +28,17 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: config.maxFileSize, files: 20 },
 });
+
+function normalizeDivisionId(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  const match = DIVISIONS.find((item) => item.id === normalized || item.name.toLowerCase() === normalized);
+  if (!match) {
+    const error = new Error("File not found.");
+    error.status = 404;
+    throw error;
+  }
+  return match.id;
+}
 
 function normalizeCompanyPatch(payload, existing) {
   const next = { ...existing };
@@ -216,14 +227,14 @@ router.head("/files/:fileId", asyncRoute(serveStoredFile));
 router.get(
   "/files/:division/:year/:companyId/:detailDirectory/:fileName",
   asyncRoute(async (req, res) => {
-    assertSafeSegment(req.params.division, "division");
+    const division = normalizeDivisionId(req.params.division);
     assertSafeSegment(req.params.year, "year");
     assertSafeSegment(req.params.companyId, "company id");
     assertSafeSegment(req.params.detailDirectory, "detail directory");
     assertSafeSegment(req.params.fileName, "file name");
     const filePath = safeJoin(
       config.storageRoot,
-      req.params.division,
+      division,
       req.params.year,
       req.params.companyId,
       req.params.detailDirectory,

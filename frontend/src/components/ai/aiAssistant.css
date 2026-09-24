@@ -35,7 +35,7 @@
   padding: 12px 15px;
   border-bottom: 1px solid rgb(30 45 83 / 10%);
   background:
-    radial-gradient(circle at 0% 0%, rgb(244 197 16 / 12%), transparent 11rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(135deg, #fff, var(--pfccl-navy-soft));
 }
 
@@ -53,7 +53,7 @@
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 70% 20%, rgb(244 197 16 / 24%), transparent 45%),
+    linear-gradient(transparent, transparent),
     linear-gradient(145deg, var(--pfccl-navy), var(--pfccl-navy-deep));
   color: var(--pfccl-gold-bright);
   box-shadow: 0 10px 20px rgb(30 45 83 / 20%), 0 0 0 5px rgb(244 197 16 / 7%);
@@ -178,7 +178,7 @@
 .ai-select-button.active {
   border-color: var(--pfccl-navy);
   background:
-    radial-gradient(circle at 80% 10%, rgb(244 197 16 / 22%), transparent 5rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(135deg, var(--pfccl-navy), var(--pfccl-navy-deep));
   color: var(--pfccl-gold-bright);
   box-shadow: 0 10px 20px rgb(30 45 83 / 18%);
@@ -305,8 +305,8 @@
   align-content: start;
   gap: 10px;
   background:
-    radial-gradient(circle at 90% 0%, rgb(244 197 16 / 9%), transparent 16rem),
-    radial-gradient(circle at 0% 100%, rgb(181 45 45 / 5%), transparent 12rem),
+    linear-gradient(transparent, transparent),
+    linear-gradient(transparent, transparent),
     var(--surface-soft);
 }
 
@@ -416,7 +416,7 @@
   border: 0;
   border-radius: 12px;
   background:
-    radial-gradient(circle at 70% 20%, rgb(244 197 16 / 25%), transparent 50%),
+    linear-gradient(transparent, transparent),
     linear-gradient(145deg, var(--pfccl-navy), var(--pfccl-navy-deep));
   color: var(--pfccl-gold-bright);
   display: grid;
@@ -447,7 +447,7 @@
   border: 2px solid rgb(244 197 16 / 62%);
   border-radius: 50%;
   background:
-    radial-gradient(circle at 67% 20%, rgb(244 197 16 / 28%), transparent 44%),
+    linear-gradient(transparent, transparent),
     linear-gradient(145deg, var(--pfccl-navy), var(--pfccl-navy-deep));
   color: var(--pfccl-gold-bright);
   display: grid;

@@ -18,7 +18,7 @@ router.get("/meetings/dashboard", asyncRoute(async (_req, res) => {
 }));
 
 router.get("/meetings/events", asyncRoute(async (req, res) => {
-  const days = Math.min(Math.max(Number(req.query.days) || 60, 7), 180);
+  const days = Math.min(Math.max(Number(req.query.days) || 365, 7), 730);
   const overdueDays = Math.min(Math.max(Number(req.query.overdueDays) || 30, 7), 180);
   sendData(res, await getMeetingEvents({ days, overdueDays }));
 }));

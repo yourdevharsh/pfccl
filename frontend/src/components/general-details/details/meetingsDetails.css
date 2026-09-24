@@ -59,7 +59,7 @@
 
 .meeting-create-card {
   background:
-    radial-gradient(circle at 100% 0%, rgb(244 197 16 / 12%), transparent 14rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(180deg, #fffef2, #fff);
   border-color: var(--pfccl-gold-border);
 }

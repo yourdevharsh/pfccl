@@ -31,20 +31,22 @@ function parseDateOnly(value) {
 }
 
 function companyPathByValues(division, year, companyId) {
-  assertSafeSegment(division, "division");
+  const normalizedDivision = String(division || "").trim().toLowerCase();
+  assertSafeSegment(normalizedDivision, "division");
   assertSafeSegment(String(year), "year");
   assertSafeSegment(companyId, "company id");
-  return safeJoin(config.storageRoot, division, String(year), companyId);
+  return safeJoin(config.storageRoot, normalizedDivision, String(year), companyId);
 }
 
 export function companyPath(company) {
   const year = companyYear(company);
+  const division = company?.division ?? company?.divisionId;
   if (!year) {
     const error = new Error("Company has an invalid incorporation date.");
     error.status = 422;
     throw error;
   }
-  return companyPathByValues(company.division, year, company.id);
+  return companyPathByValues(division, year, company.id);
 }
 
 export function detailPath(company, detailKey) {
@@ -61,7 +63,7 @@ async function findExistingCompanyBase(company) {
     if (error.code !== "ENOENT") throw error;
   }
 
-  const divisionRoot = safeJoin(config.storageRoot, company.division);
+  const divisionRoot = safeJoin(config.storageRoot, String(company?.division ?? company?.divisionId ?? "").trim().toLowerCase());
   let years = [];
   try {
     years = await fs.readdir(divisionRoot, { withFileTypes: true });
@@ -589,7 +591,16 @@ export async function findStoredFile(fileId) {
 }
 
 async function findExistingStoredFilePath(company, row) {
-  const companyShape = rowToCompanyShape(company);
+  const division = String(company?.division ?? company?.divisionId ?? "").trim().toLowerCase();
+  if (!division) {
+    const error = new Error("Company has an invalid division.");
+    error.status = 422;
+    throw error;
+  }
+  const companyShape = {
+    ...rowToCompanyShape(company),
+    division,
+  };
   const preferredPath = safeJoin(detailPath(companyShape, row.detailKey), row.physicalName);
   try {
     await fs.access(preferredPath);
@@ -601,9 +612,7 @@ async function findExistingStoredFilePath(company, row) {
   // Backward compatibility: older file records were URL/path-based and could
   // survive a company year move. Search the same division/company across all
   // year folders and known detail folders before declaring the file missing.
-  const division = company?.divisionId || company?.division;
-  if (!division) return null;
-  const divisionRoot = safeJoin(config.storageRoot, division);
+  const divisionRoot = safeJoin(config.storageRoot, String(company?.division ?? company?.divisionId ?? "").trim().toLowerCase());
   let years = [];
   try {
     years = await fs.readdir(divisionRoot, { withFileTypes: true });

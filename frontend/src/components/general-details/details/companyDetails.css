@@ -16,7 +16,7 @@
   border-left: 4px solid transparent;
   border-radius: 13px;
   background:
-    radial-gradient(circle at 100% 0%, rgb(244 197 16 / 8%), transparent 6rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(145deg, #fff, var(--surface-soft));
   color: var(--ink-800);
   font-size: 13px;
@@ -39,7 +39,7 @@
   border-color: var(--pfccl-gold-border);
   border-left-color: var(--pfccl-gold);
   background:
-    radial-gradient(circle at 100% 0%, rgb(244 197 16 / 16%), transparent 7rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(145deg, var(--pfccl-gold-soft), #fff);
   color: var(--pfccl-navy);
   box-shadow: var(--shadow-md);

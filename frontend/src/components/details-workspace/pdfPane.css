@@ -51,7 +51,7 @@
   padding: 8px 10px 8px 14px;
   border-bottom: 1px solid rgb(30 45 83 / 10%);
   background:
-    radial-gradient(circle at 0% 0%, rgb(181 45 45 / 8%), transparent 10rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(180deg, #fff, #fafcff);
 }
 
@@ -164,7 +164,7 @@
   line-height: 1.5;
   text-align: center;
   background:
-    radial-gradient(circle at 50% 0%, rgb(244 197 16 / 13%), transparent 14rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(135deg, #202733, #3a424d);
 }
 

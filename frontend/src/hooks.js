@@ -81,6 +81,18 @@ export function useRepositoryData({ selectedNodeId, selectedYearByDivision, sele
 
   useEffect(() => { loadInitialData(); }, [loadInitialData]);
 
+  // Keep date-bound reminders live while the application is open. A light
+  // 60-second refresh avoids stale Board Meeting events after another user,
+  // tab, or import changes a meeting.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "hidden") return;
+      refreshMeetingOverview();
+    };
+    const interval = window.setInterval(refresh, 60_000);
+    return () => window.clearInterval(interval);
+  }, [refreshMeetingOverview]);
+
   const fetchCompanies = useCallback(async (division, year, status = "ALL") => {
     const cacheKey = `${division}:${year}:${status}`;
     if (companyRequestCache.current.has(cacheKey)) return companyRequestCache.current.get(cacheKey);

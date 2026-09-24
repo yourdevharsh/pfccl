@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import express from "express";
 import cors from "cors";
 import { config } from "./config.js";
+import { DIVISIONS } from "./constants.js";
 import repositoryRoutes from "./routes/repositoryRoutes.js";
 import meetingRoutes from "./routes/meetingRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
@@ -47,7 +48,13 @@ export async function createApp() {
     "/files/:division/:year/:companyId/:detailDirectory/:fileName",
     async (req, res, next) => {
       try {
-        assertSafeSegment(req.params.division, "division");
+        const normalizedDivision = String(req.params.division || "").trim().toLowerCase();
+        const division = DIVISIONS.find((item) => item.id === normalizedDivision || item.name.toLowerCase() === normalizedDivision)?.id;
+        if (!division) {
+          const invalid = new Error("File not found.");
+          invalid.status = 404;
+          throw invalid;
+        }
         assertSafeSegment(req.params.year, "year");
         assertSafeSegment(req.params.companyId, "company id");
         assertSafeSegment(req.params.detailDirectory, "detail directory");
@@ -55,7 +62,7 @@ export async function createApp() {
 
         const filePath = safeJoin(
           config.storageRoot,
-          req.params.division,
+          division,
           req.params.year,
           req.params.companyId,
           req.params.detailDirectory,

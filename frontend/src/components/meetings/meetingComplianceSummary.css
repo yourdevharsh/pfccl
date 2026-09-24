@@ -7,7 +7,7 @@
   border: 1px solid rgb(30 45 83 / 13%);
   border-radius: 14px;
   background:
-    radial-gradient(circle at 0% 0%, rgb(244 197 16 / 11%), transparent 10rem),
+    linear-gradient(transparent, transparent),
     linear-gradient(145deg, #fff, var(--surface-soft));
   box-shadow: var(--shadow-xs);
 }

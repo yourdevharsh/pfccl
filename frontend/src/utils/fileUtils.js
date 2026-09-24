@@ -1,38 +1,42 @@
 function firstFileName(value) {
   if (!value || typeof value !== "object") return "";
-  return (
-    value.originalName ||
-    value.originalname ||
-    value.name ||
-    value.fileName ||
-    value.filename ||
-    value.metadata?.originalName ||
-    value.metadata?.name ||
-    value.file?.originalName ||
-    value.file?.name ||
-    value.file?.metadata?.originalName ||
-    ""
-  );
+  const candidates = [
+    value.originalName,
+    value.originalname,
+    value.originalFilename,
+    value.name,
+    value.fileName,
+    value.filename,
+    value.metadata?.originalName,
+    value.metadata?.name,
+    value.file?.originalName,
+    value.file?.name,
+    value.file?.metadata?.originalName,
+  ];
+  return candidates.find((candidate) => {
+    const text = String(candidate ?? "").trim();
+    return text && text.toLowerCase() !== "file" && text.toLowerCase() !== "unnamed file";
+  }) || "";
+}
+
+function fileNameFromUrl(rawUrl) {
+  try {
+    const parsed = new URL(String(rawUrl), window.location.href);
+    const name = decodeURIComponent(parsed.pathname.split("/").pop() || "").trim();
+    return name && !/^files?$/i.test(name) ? name : "";
+  } catch {
+    const name = decodeURIComponent(String(rawUrl).split(/[?#]/)[0].split("/").pop() || "").trim();
+    return name && !/^files?$/i.test(name) ? name : "";
+  }
 }
 
 export function getFileName(file) {
   if (!file) return "";
-  if (typeof file === "string") return decodeURIComponent(file.split("/").pop() || "File");
-  if (Array.isArray(file.files)) return getFileName(file.files[0]);
+  if (typeof file === "string") return fileNameFromUrl(file) || "File";
   const direct = firstFileName(file);
   if (direct) return direct;
-  const rawUrl = file.url || file.downloadUrl || file.path || file.storageUrl || "";
-  if (rawUrl) {
-    try {
-      const parsed = new URL(rawUrl, window.location.href);
-      const last = decodeURIComponent(parsed.pathname.split("/").pop() || "");
-      if (last) return last;
-    } catch {
-      const last = decodeURIComponent(String(rawUrl).split("/").pop() || "");
-      if (last && !/^files?$/i.test(last)) return last;
-    }
-  }
-  return "File";
+  const rawUrl = file.url || file.downloadUrl || file.path || file.href || "";
+  return fileNameFromUrl(rawUrl) || "File";
 }
 
 export function getFileUrl(file) {
