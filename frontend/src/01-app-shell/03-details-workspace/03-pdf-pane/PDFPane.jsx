@@ -1,0 +1,126 @@
+import { getFileName } from "../../../07-utils/fileUtils";
+import PDFViewer from "../../../02-features/documents/PDFViewer";
+import "./pdfPane.css";
+
+function MinimizeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
+function ExpandIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8 5H5v3m0-3 6 6m5-6h3v3m0-3-6 6M8 19H5v-3m0 3 6-6m5 6h3v-3m0 3-6-6" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 3h7l4 4v14H7zM14 3v5h5" />
+    </svg>
+  );
+}
+
+function PDFPane({
+  file,
+  expanded,
+  onExpand,
+  onMinimize,
+  onClose,
+  paneNumber,
+}) {
+  const fileName = getFileName(file);
+  if (!expanded) {
+    return (
+      <aside
+        className="pdf-pane pdf-pane-minimized"
+        title={fileName}
+        data-ai-pdf
+        data-ai-file-id={file?.id || ""}
+        data-ai-file-name={fileName}
+        data-ai-company-id={file?.__aiContext?.companyId || ""}
+        data-ai-detail-key={file?.__aiContext?.detailKey || ""}
+        data-ai-field={file?.__aiContext?.field || ""}
+      >
+        <button
+          type="button"
+          className="pdf-rail-expand"
+          onClick={onExpand}
+          title={`Expand ${fileName}`}
+          aria-label={`Expand ${fileName}`}
+        >
+          <ExpandIcon />
+        </button>
+        <button
+          type="button"
+          className="pdf-rail-close"
+          onClick={onClose}
+          title={`Close ${fileName}`}
+          aria-label={`Close ${fileName}`}
+        >
+          <CloseIcon />
+        </button>
+        <div className="pdf-rail-label">
+          <span>{fileName}</span>
+        </div>
+      </aside>
+    );
+  }
+
+  return (
+    <section
+      className="pdf-pane pdf-pane-expanded"
+      data-ai-pdf
+      data-ai-file-id={file?.id || ""}
+      data-ai-file-name={fileName}
+      data-ai-company-id={file?.__aiContext?.companyId || ""}
+      data-ai-detail-key={file?.__aiContext?.detailKey || ""}
+      data-ai-field={file?.__aiContext?.field || ""}
+    >
+      <div className="pdf-pane-header">
+        <div className="pdf-pane-title" title={fileName}>
+          <FileIcon />
+          <span>{fileName}</span>
+        </div>
+        <div className="pdf-pane-actions">
+          <button
+            type="button"
+            className="workspace-icon-button"
+            onClick={onMinimize}
+            title="Minimize PDF"
+            aria-label={`Minimize ${fileName}`}
+          >
+            <MinimizeIcon />
+          </button>
+          <button
+            type="button"
+            className="workspace-icon-button danger"
+            onClick={onClose}
+            title="Close PDF"
+            aria-label={`Close ${fileName}`}
+          >
+            <CloseIcon />
+          </button>
+        </div>
+      </div>
+      <div className="pdf-viewer-frame">
+        <PDFViewer file={file} title={`${paneNumber}: ${fileName}`} />
+      </div>
+    </section>
+  );
+}
+
+export default PDFPane;
