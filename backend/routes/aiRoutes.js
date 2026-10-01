@@ -1,5 +1,5 @@
 import express from "express";
-import { answerWithAi, getAiProviders } from "../services/ai.js";
+import { answerWithAi, getAiProviders } from "../services/ai/ai.js";
 import { asyncRoute, sendData } from "../utils/http.js";
 
 const router = express.Router();
