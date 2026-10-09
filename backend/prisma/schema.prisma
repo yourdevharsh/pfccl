@@ -86,6 +86,8 @@ model Meeting {
   minutesCirculatedDate  DateTime? @db.Date
   commentsReceivedDate   DateTime? @db.Date
   finalMinutesDate       DateTime? @db.Date
+  minutesSignedDate      DateTime? @db.Date
+  signedMinutesCirculatedDate DateTime? @db.Date
   notes                  String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt

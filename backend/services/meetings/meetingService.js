@@ -1,10 +1,6 @@
 import fs from "node:fs/promises";
 import { getPrisma } from "../prisma.js";
-import {
-  parseDateOnly,
-  formatDate,
-  financialQuarter,
-} from "./meetingDates.js";
+import { parseDateOnly, formatDate } from "./meetingDates.js";
 import { hydrateMeeting } from "./meetingSerializer.js";
 import { normalizeMeetingInput } from "./meetingValidation.js";
 import { nextMeetingNumber } from "./meetingRepository.js";
@@ -14,6 +10,41 @@ import {
 } from "./boardMeetingService.js";
 import { detailPath, resolveStoredFile } from "../storage.js";
 import { safeJoin } from "../../utils/pathSafety.js";
+
+async function validateHalfYearSpacing(company, meetingData, excludeMeetingId) {
+  if (
+    meetingData.type !== "BOARD" ||
+    meetingData.status !== "HELD" ||
+    !meetingData.heldDate ||
+    String(company.meetingProfile || "STANDARD_120").toUpperCase() !==
+      "HALF_YEAR_90"
+  )
+    return;
+
+  const rows = await getPrisma().meeting.findMany({
+    where: {
+      companyId: company.id,
+      type: "BOARD",
+      status: "HELD",
+      heldDate: { not: null },
+      ...(excludeMeetingId ? { NOT: { id: excludeMeetingId } } : {}),
+    },
+    select: { heldDate: true },
+  });
+  if (
+    rows.some(
+      (row) =>
+        Math.abs(meetingData.heldDate.getTime() - row.heldDate.getTime()) <
+        90 * 86400000,
+    )
+  ) {
+    const error = new Error(
+      "For the half-year profile, Board Meetings must be at least 90 days apart.",
+    );
+    error.status = 422;
+    throw error;
+  }
+}
 
 export async function listCompanyMeetings(companyId) {
   const prisma = getPrisma();
@@ -46,6 +77,15 @@ export async function createMeeting(companyId, payload) {
   }
 
   const data = normalizeMeetingInput(payload);
+  await validateHalfYearSpacing(company, data);
+  if (
+    data.status === "HELD" &&
+    data.heldDate > new Date(new Date().toISOString().slice(0, 10))
+  ) {
+    const error = new Error("A held meeting date cannot be in the future.");
+    error.status = 422;
+    throw error;
+  }
   if (!data.meetingNumber)
     data.meetingNumber = await nextMeetingNumber(companyId, data.type);
   if (
@@ -103,27 +143,57 @@ export async function updateMeeting(companyId, meetingId, payload) {
   const data = normalizeMeetingInput({
     ...existing,
     ...payload,
-    scheduledDate: payload.scheduledDate ?? formatDate(existing.scheduledDate),
-    heldDate: payload.heldDate ?? formatDate(existing.heldDate),
-    noticeSentDate:
-      payload.noticeSentDate ?? formatDate(existing.noticeSentDate),
-    agendaSentDate:
-      payload.agendaSentDate ?? formatDate(existing.agendaSentDate),
-    attendanceDate:
-      payload.attendanceDate ?? formatDate(existing.attendanceDate),
-    minutesCirculatedDate:
-      payload.minutesCirculatedDate ??
-      formatDate(existing.minutesCirculatedDate),
-    commentsReceivedDate:
-      payload.commentsReceivedDate ?? formatDate(existing.commentsReceivedDate),
-    finalMinutesDate:
-      payload.finalMinutesDate ?? formatDate(existing.finalMinutesDate),
+    scheduledDate:
+      Object.hasOwn(payload, "scheduledDate")
+        ? payload.scheduledDate
+        : formatDate(existing.scheduledDate),
+    heldDate: Object.hasOwn(payload, "heldDate")
+      ? payload.heldDate
+      : formatDate(existing.heldDate),
+    noticeSentDate: Object.hasOwn(payload, "noticeSentDate")
+      ? payload.noticeSentDate
+      : formatDate(existing.noticeSentDate),
+    agendaSentDate: Object.hasOwn(payload, "agendaSentDate")
+      ? payload.agendaSentDate
+      : formatDate(existing.agendaSentDate),
+    attendanceDate: Object.hasOwn(payload, "attendanceDate")
+      ? payload.attendanceDate
+      : formatDate(existing.attendanceDate),
+    minutesCirculatedDate: Object.hasOwn(payload, "minutesCirculatedDate")
+      ? payload.minutesCirculatedDate
+      : formatDate(existing.minutesCirculatedDate),
+    commentsReceivedDate: Object.hasOwn(payload, "commentsReceivedDate")
+      ? payload.commentsReceivedDate
+      : formatDate(existing.commentsReceivedDate),
+    finalMinutesDate: Object.hasOwn(payload, "finalMinutesDate")
+      ? payload.finalMinutesDate
+      : formatDate(existing.finalMinutesDate),
+    minutesSignedDate: Object.hasOwn(payload, "minutesSignedDate")
+      ? payload.minutesSignedDate
+      : formatDate(existing.minutesSignedDate),
+    signedMinutesCirculatedDate: Object.hasOwn(
+      payload,
+      "signedMinutesCirculatedDate",
+    )
+      ? payload.signedMinutesCirculatedDate
+      : formatDate(existing.signedMinutesCirculatedDate),
     meetingNumber: payload.meetingNumber ?? existing.meetingNumber,
     type: payload.type ?? existing.type,
     status: payload.status ?? existing.status,
     earlyConducted: payload.earlyConducted ?? existing.earlyConducted,
     notes: payload.notes ?? existing.notes,
   });
+  if (formatDate(data.heldDate) !== formatDate(existing.heldDate)) {
+    await validateHalfYearSpacing(company, data, meetingId);
+  }
+  if (
+    data.status === "HELD" &&
+    data.heldDate > new Date(new Date().toISOString().slice(0, 10))
+  ) {
+    const error = new Error("A held meeting date cannot be in the future.");
+    error.status = 422;
+    throw error;
+  }
   if (
     company?.incorporationDate &&
     data.scheduledDate &&
@@ -227,7 +297,7 @@ export async function recordEarlyBoardMeeting(companyId, heldDateValue) {
   }
 
   const latest = await prisma.meeting.findFirst({
-    where: { companyId, type: "BOARD", heldDate: { not: null } },
+    where: { companyId, type: "BOARD", status: "HELD", heldDate: { not: null } },
     orderBy: { heldDate: "desc" },
   });
   const latestHeld = latest?.heldDate || null;
@@ -257,17 +327,31 @@ export async function recordEarlyBoardMeeting(companyId, heldDateValue) {
     throw error;
   }
   if (
-    heldDate.getTime() >= dueDate.getTime() ||
-    financialQuarter(heldDate) !== financialQuarter(dueDate)
+    String(company.meetingProfile || "STANDARD_120").toUpperCase() ===
+      "HALF_YEAR_90" &&
+    latestHeld &&
+    heldDate.getTime() - latestHeld.getTime() < 90 * 86400000
   ) {
     const error = new Error(
-      `The early meeting date must be before ${formatDate(dueDate)} and in the same financial quarter as that deadline.`,
+      "For the half-year profile, Board Meetings must be at least 90 days apart.",
+    );
+    error.status = 422;
+    throw error;
+  }
+  if (heldDate > new Date(new Date().toISOString().slice(0, 10))) {
+    const error = new Error("A held meeting date cannot be in the future.");
+    error.status = 422;
+    throw error;
+  }
+  if (heldDate.getTime() >= dueDate.getTime()) {
+    const error = new Error(
+      `The early meeting date must be before the calculated deadline of ${formatDate(dueDate)}.`,
     );
     error.status = 422;
     throw error;
   }
 
-  const activeScheduled = await prisma.meeting.findMany({
+  const target = await prisma.meeting.findFirst({
     where: {
       companyId,
       type: "BOARD",
@@ -280,39 +364,26 @@ export async function recordEarlyBoardMeeting(companyId, heldDateValue) {
     orderBy: { scheduledDate: "asc" },
   });
 
-  let row;
-  if (activeScheduled.length) {
-    const target = activeScheduled[0];
-    row = await prisma.meeting.update({
-      where: { id: target.id },
-      data: {
-        scheduledDate: heldDate,
-        heldDate,
-        status: "HELD",
-        earlyConducted: true,
-      },
-    });
-    if (activeScheduled.length > 1) {
-      await prisma.meeting.updateMany({
-        where: {
-          id: { in: activeScheduled.slice(1).map((meeting) => meeting.id) },
+  const row = target
+    ? await prisma.meeting.update({
+        where: { id: target.id },
+        data: {
+          heldDate,
+          status: "HELD",
+          earlyConducted: heldDate < target.scheduledDate,
         },
-        data: { status: "CANCELLED", earlyConducted: false },
+      })
+    : await prisma.meeting.create({
+        data: {
+          companyId,
+          type: "BOARD",
+          meetingNumber: await nextMeetingNumber(companyId, "BOARD"),
+          scheduledDate: null,
+          heldDate,
+          status: "HELD",
+          earlyConducted: true,
+        },
       });
-    }
-  } else {
-    row = await prisma.meeting.create({
-      data: {
-        companyId,
-        type: "BOARD",
-        meetingNumber: await nextMeetingNumber(companyId, "BOARD"),
-        scheduledDate: heldDate,
-        heldDate,
-        status: "HELD",
-        earlyConducted: true,
-      },
-    });
-  }
 
   return hydrateMeeting(company, row);
 }

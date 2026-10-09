@@ -62,6 +62,28 @@ export function MeetingComplianceSummary({
         </div>
         <div
           data-ai-field="true"
+          data-ai-field-name="Next AGM due date"
+          data-ai-company-id={row.companyId}
+          data-ai-detail-key="meetings"
+          data-ai-field-path="compliance.nextAgmDueDate"
+        >
+          <span>Next AGM due</span>
+          <b>{formatDate(row.nextAgmDueDate, "Not calculated")}</b>
+        </div>
+        <div
+          data-ai-field="true"
+          data-ai-field-name="Board Meetings required in this period"
+          data-ai-company-id={row.companyId}
+          data-ai-detail-key="meetings"
+          data-ai-field-path="compliance.boardMeetingsThisPeriod"
+        >
+          <span>Board Meetings ({row.boardMeetingPeriodLabel})</span>
+          <b>
+            {row.boardMeetingsThisPeriod ?? 0} / {row.boardMeetingFrequencyRequirement ?? 4} minimum
+          </b>
+        </div>
+        <div
+          data-ai-field="true"
           data-ai-field-name="Next scheduled Board Meeting date"
           data-ai-company-id={row.companyId}
           data-ai-detail-key="meetings"
@@ -80,7 +102,7 @@ export function MeetingComplianceSummary({
           <span>Rule</span>
           <b>
             {row.meetingProfile === "HALF_YEAR_90"
-              ? "Half-year / 90d"
+              ? "One per half-year / 90d minimum gap"
               : "120-day"}
           </b>
         </div>
@@ -108,9 +130,8 @@ export function EarlyMeetingControl({ row, onRecordEarly, compact = false }) {
       <summary>Meeting held early?</summary>
       <div className="meeting-early-inner">
         <span>
-          Record a date before the calculated deadline, within the same
-          financial quarter. The new held date becomes the basis for the next
-          deadline.
+          Record a date before the calculated statutory deadline. The next
+          interval is then calculated from the meeting actually held.
         </span>
         <div
           className="meeting-early-action"
@@ -122,8 +143,8 @@ export function EarlyMeetingControl({ row, onRecordEarly, compact = false }) {
         >
           <input
             type="date"
-            min={row.lastBoardMeetingDate || row.incorporationDate || undefined}
-            max={row.nextDueDate || undefined}
+            min={row.earliestEarlyMeetingDate || undefined}
+            max={row.latestEarlyMeetingDate || undefined}
             defaultValue={""}
             onChange={(event) => {
               event.currentTarget.dataset.value = event.target.value;

@@ -4,6 +4,8 @@ import "./boardEventsSidebar.css";
 
 const eventTypeLabel = {
   BOARD_DUE: "BOARD DUE",
+  AGM_DUE: "AGM DUE",
+  BOARD_FREQUENCY_DUE: "BOARD FREQUENCY",
   BOARD: "BOARD",
   AGM: "AGM",
   EGM: "EGM",
@@ -12,6 +14,7 @@ const eventTypeLabel = {
   MINUTES_DRAFT_DUE: "DRAFT MINUTES",
   MINUTES_COMMENTS_DUE: "COMMENTS",
   MINUTES_FINAL_DUE: "FINAL MINUTES",
+  SIGNED_MINUTES_CIRCULATION_DUE: "SIGNED MINUTES",
 };
 
 export default function BoardEventsSidebar({ events = [], onOpenEvent }) {

@@ -36,6 +36,7 @@ export default function MeetingsDetails({
     scheduledDate: "",
     heldDate: "",
     status: "PLANNED",
+    earlyConducted: false,
   });
   const [creating, setCreating] = useState(false);
   const sortedMeetings = useMemo(
@@ -47,7 +48,6 @@ export default function MeetingsDetails({
             String(b.heldDate || b.scheduledDate || "").localeCompare(
               String(a.heldDate || a.scheduledDate || ""),
             ),
-          [meetingRecords, filter],
         ),
     [meetingRecords, filter],
   );
@@ -68,7 +68,12 @@ export default function MeetingsDetails({
   );
 
   async function createMeeting() {
-    if (!newMeeting.scheduledDate || creating) return;
+    if (
+      (!newMeeting.scheduledDate &&
+        !(newMeeting.status === "HELD" && newMeeting.heldDate)) ||
+      creating
+    )
+      return;
     setCreating(true);
     try {
       await onCreateMeeting(company.id, {
@@ -85,6 +90,7 @@ export default function MeetingsDetails({
         scheduledDate: "",
         heldDate: "",
         status: "PLANNED",
+        earlyConducted: false,
       });
       setShowCreate(false);
     } finally {
@@ -226,6 +232,24 @@ export default function MeetingsDetails({
                 path: "new.heldDate",
               }}
             />
+            {newMeeting.status === "HELD" &&
+              newMeeting.heldDate &&
+              newMeeting.scheduledDate &&
+              newMeeting.heldDate < newMeeting.scheduledDate && (
+                <label className="meeting-early-confirmation">
+                  <input
+                    type="checkbox"
+                    checked={newMeeting.earlyConducted}
+                    onChange={(event) =>
+                      setNewMeeting((current) => ({
+                        ...current,
+                        earlyConducted: event.target.checked,
+                      }))
+                    }
+                  />
+                  Confirm early-held date
+                </label>
+              )}
             <SelectField
               label="Status"
               value={newMeeting.status}
@@ -251,7 +275,11 @@ export default function MeetingsDetails({
                 type="button"
                 className="detail-button primary"
                 onClick={createMeeting}
-                disabled={!newMeeting.scheduledDate || creating}
+                disabled={
+                  (!newMeeting.scheduledDate &&
+                    !(newMeeting.status === "HELD" && newMeeting.heldDate)) ||
+                  creating
+                }
               >
                 {creating ? "Creating…" : "Create meeting"}
               </button>

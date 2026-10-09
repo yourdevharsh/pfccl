@@ -16,6 +16,10 @@ export default defineConfig(async () => ({
     port: 1420,
     strictPort: true,
     host: host || false,
+    proxy: {
+      "/api": "http://127.0.0.1:3000",
+      "/files": "http://127.0.0.1:3000",
+    },
     hmr: host
       ? {
           protocol: "ws",

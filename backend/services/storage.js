@@ -7,6 +7,24 @@ import { getPrisma } from "./prisma.js";
 import { assertSafeDetailKey, assertSafeSegment, safeJoin, sanitizeFileName } from "../utils/pathSafety.js";
 
 const DIVISION_SEED = DIVISIONS;
+const UNSAFE_FIELD_PARTS = new Set(["__proto__", "prototype", "constructor"]);
+
+function validateFieldPath(pathExpression) {
+  const value = String(pathExpression || "");
+  const parts = value.split(".");
+  if (
+    value.length > 512 ||
+    parts.some(
+      (part) =>
+        !/^[a-zA-Z0-9_-]+$/.test(part) || UNSAFE_FIELD_PARTS.has(part),
+    )
+  ) {
+    const error = new Error("Invalid file field path.");
+    error.status = 400;
+    throw error;
+  }
+  return parts;
+}
 
 function companyYear(company) {
   const raw = company?.incorporationDate;
@@ -27,7 +45,9 @@ function parseDateOnly(value) {
   const raw = String(value || "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
   const date = new Date(`${raw}T00:00:00.000Z`);
-  return Number.isNaN(date.getTime()) ? null : date;
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== raw
+    ? null
+    : date;
 }
 
 function companyPathByValues(division, year, companyId) {
@@ -159,7 +179,12 @@ function cloneValue(value) {
 }
 
 export function getFilesAtPath(object, pathExpression) {
-  const pathParts = String(pathExpression).split(".").filter(Boolean);
+  let pathParts;
+  try {
+    pathParts = validateFieldPath(pathExpression);
+  } catch {
+    return undefined;
+  }
   let current = object;
   for (const part of pathParts) {
     if (!current || typeof current !== "object") return undefined;
@@ -171,10 +196,7 @@ export function getFilesAtPath(object, pathExpression) {
 }
 
 export function setFilesAtPath(object, pathExpression, files) {
-  const pathParts = String(pathExpression).split(".").filter(Boolean);
-  if (!pathParts.length) {
-    throw new Error("Invalid file field path.");
-  }
+  const pathParts = validateFieldPath(pathExpression);
   let current = object;
   for (let index = 0; index < pathParts.length; index += 1) {
     const part = pathParts[index];
@@ -243,6 +265,11 @@ async function hydrateDetail(company, detailKey, data) {
   const detail = cloneValue(data || {});
   const storedFiles = await getStoredFilesForCompany(company.id, detailKey);
   for (const row of storedFiles) {
+    try {
+      validateFieldPath(row.fieldPath);
+    } catch {
+      continue;
+    }
     const existing = getFilesAtPath(detail, row.fieldPath) || [];
     const deduped = existing.filter((item) => {
       if (!item || typeof item !== "object") return true;
@@ -481,7 +508,9 @@ function normalizeDetailField(detailKey, field) {
   const property = DETAIL_PROPERTIES[detailKey];
   const value = String(field || "").trim();
   const prefix = `${property}.`;
-  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+  const normalized = value.startsWith(prefix) ? value.slice(prefix.length) : value;
+  validateFieldPath(normalized);
+  return normalized;
 }
 
 export async function readDetail(company, detailKey) {
@@ -506,7 +535,7 @@ export async function writeDetail(company, detailKey, detailData) {
 export async function saveUploadedFile(company, detailKey, field, uploadedFile) {
   assertSafeDetailKey(detailKey, DETAIL_KEYS);
   field = normalizeDetailField(detailKey, field);
-  if (!field || typeof field !== "string" || field.includes("..")) {
+  if (!field || typeof field !== "string") {
     const error = new Error("Invalid file field.");
     error.status = 400;
     throw error;

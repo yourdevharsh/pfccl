@@ -8,7 +8,10 @@ import {
   startOfUtcDay,
 } from "./meetingDates.js";
 import { isMonitoredCompany } from "./boardMeetingService.js";
-import { calculateBoardDueDate } from "./boardMeetingService.js";
+import {
+  calculateBoardDueDate,
+  calculateAgmDueDate,
+} from "./boardMeetingService.js";
 
 export async function getMeetingEvents({ days = 365, overdueDays = 30 } = {}) {
   const prisma = getPrisma();
@@ -29,9 +32,10 @@ export async function getMeetingEvents({ days = 365, overdueDays = 30 } = {}) {
       const boardMeetings = company.meetings.filter(
         (meeting) => meeting.type === "BOARD",
       );
-      const latestHeld = boardMeetings.find(
-        (meeting) => meeting.heldDate,
-      )?.heldDate;
+      const latestHeld = boardMeetings
+        .filter((meeting) => meeting.status === "HELD" && meeting.heldDate)
+        .sort((a, b) => b.heldDate.getTime() - a.heldDate.getTime())[0]
+        ?.heldDate;
       const dueDate = calculateBoardDueDate(
         company,
         latestHeld ? parseDateOnly(latestHeld) : null,
@@ -54,6 +58,86 @@ export async function getMeetingEvents({ days = 365, overdueDays = 30 } = {}) {
             : "First Board Meeting deadline based on incorporation date.",
         });
       }
+
+      const halfYearProfile =
+        String(company.meetingProfile || "STANDARD_120").toUpperCase() ===
+        "HALF_YEAR_90";
+      const periodStart = halfYearProfile
+        ? new Date(
+            Date.UTC(
+              now.getUTCFullYear(),
+              now.getUTCMonth() < 6 ? 0 : 6,
+              1,
+            ),
+          )
+        : new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+      const periodEnd = halfYearProfile
+        ? new Date(
+            Date.UTC(
+              now.getUTCFullYear(),
+              now.getUTCMonth() < 6 ? 6 : 12,
+              0,
+            ),
+          )
+        : new Date(Date.UTC(now.getUTCFullYear(), 11, 31));
+      const heldThisPeriod = boardMeetings.filter(
+        (meeting) =>
+          meeting.status === "HELD" &&
+          meeting.heldDate &&
+          meeting.heldDate >= periodStart &&
+          meeting.heldDate <= periodEnd,
+      ).length;
+      const requiredBoardMeetings = halfYearProfile ? 1 : 4;
+      if (
+        heldThisPeriod < requiredBoardMeetings &&
+        periodEnd >= windowStart &&
+        periodEnd <= windowEnd
+      ) {
+        const delta = daysUntil(periodEnd, now);
+        events.push({
+          id: `board-frequency-${company.id}-${formatDate(periodEnd)}`,
+          companyId: company.id,
+          meetingId: null,
+          type: "BOARD_FREQUENCY_DUE",
+          title: "Board meeting frequency due",
+          companyName: company.name,
+          division: company.divisionId,
+          date: formatDate(periodEnd),
+          daysUntil: delta,
+          severity: severityForDays(delta),
+          description: halfYearProfile
+            ? `No Board Meeting is recorded for the ${periodStart.getUTCMonth() === 0 ? "January-June" : "July-December"} half-year; at least one is required.`
+            : `${heldThisPeriod} of at least 4 Board Meetings are recorded for this calendar year.`,
+        });
+      }
+
+      const agms = company.meetings.filter((meeting) => meeting.type === "AGM");
+      const latestAgm = agms
+        .filter((meeting) => meeting.status === "HELD" && meeting.heldDate)
+        .sort((a, b) => b.heldDate.getTime() - a.heldDate.getTime())[0]
+        ?.heldDate;
+      const agmDueDate = calculateAgmDueDate(
+        company,
+        latestAgm || null,
+      );
+      if (agmDueDate && agmDueDate >= windowStart && agmDueDate <= windowEnd) {
+        const delta = daysUntil(agmDueDate, now);
+        events.push({
+          id: `agm-due-${company.id}-${formatDate(agmDueDate)}`,
+          companyId: company.id,
+          meetingId: null,
+          type: "AGM_DUE",
+          title: "Annual general meeting due",
+          companyName: company.name,
+          division: company.divisionId,
+          date: formatDate(agmDueDate),
+          daysUntil: delta,
+          severity: severityForDays(delta),
+          description: latestAgm
+            ? `Based on the last AGM held on ${formatDate(latestAgm)} and the next financial-year deadline.`
+            : "First AGM deadline based on the first financial year and incorporation date.",
+        });
+      }
     }
 
     const plannedMeetings = company.meetings
@@ -66,18 +150,27 @@ export async function getMeetingEvents({ days = 365, overdueDays = 30 } = {}) {
     let nextScheduledIncluded = false;
 
     for (const meeting of company.meetings) {
-      if (meeting.status !== "PLANNED") continue;
+      if (meeting.status === "CANCELLED") continue;
       const baseName =
         meeting.type === "BOARD"
           ? "Board Meeting"
           : meeting.type === "AGM"
             ? "AGM"
             : "EGM";
-      if (meeting.scheduledDate) {
+      const meetingDate =
+        meeting.status === "HELD"
+          ? meeting.heldDate || meeting.scheduledDate
+          : meeting.scheduledDate || meeting.heldDate;
+      if (meetingDate) {
         const scheduled = new Date(
-          `${formatDate(meeting.scheduledDate)}T00:00:00Z`,
+          `${formatDate(meetingDate)}T00:00:00Z`,
         );
-        if (scheduled >= windowStart && scheduled <= windowEnd) {
+        if (
+          meeting.status === "PLANNED" &&
+          meeting.scheduledDate &&
+          scheduled >= windowStart &&
+          scheduled <= windowEnd
+        ) {
           const delta = daysUntil(scheduled, now);
           events.push({
             id: `meeting-${meeting.id}`,
@@ -98,20 +191,25 @@ export async function getMeetingEvents({ days = 365, overdueDays = 30 } = {}) {
             nextScheduledIncluded = true;
         }
 
+        const noticeDays = meeting.type === "BOARD" ? 8 : 22;
         const taskDates = [
           [
             "NOTICE_DUE",
             "Notice due",
-            addDays(scheduled, -7),
+            addDays(scheduled, -noticeDays),
             meeting.noticeSentDate,
-            "Notice should be completed 7 days before the meeting unless the applicable exception is used.",
+            meeting.type === "BOARD"
+              ? "Target date leaves seven clear days before the Board Meeting. Shorter notice is permitted only under the statutory conditions."
+              : "Target date leaves twenty-one clear days before the general meeting; shorter notice requires the applicable member consent.",
           ],
           [
             "AGENDA_DUE",
             "Agenda due",
-            addDays(scheduled, -7),
+            addDays(scheduled, meeting.type === "BOARD" ? -7 : -22),
             meeting.agendaSentDate,
-            "Agenda / Notes should be completed 7 days before the meeting.",
+            meeting.type === "BOARD"
+              ? "Agenda and notes should be sent at least seven days before the Board Meeting."
+              : "General-meeting agenda and explanatory statement should accompany the meeting notice.",
           ],
         ];
         for (const [
@@ -159,6 +257,15 @@ export async function getMeetingEvents({ days = 365, overdueDays = 30 } = {}) {
             "Minutes should ordinarily be completed / entered within 30 days.",
           ],
         ];
+        if (meeting.minutesSignedDate) {
+          workflowDates.push([
+            "SIGNED_MINUTES_CIRCULATION_DUE",
+            "Signed minutes circulation due",
+            addDays(parseDateOnly(formatDate(meeting.minutesSignedDate)), 15),
+            meeting.signedMinutesCirculatedDate,
+            "Circulate a certified copy of the signed minutes to directors within 15 days of signing.",
+          ]);
+        }
         if (meeting.minutesCirculatedDate) {
           const commentsDue = addDays(
             parseDateOnly(formatDate(meeting.minutesCirculatedDate)),

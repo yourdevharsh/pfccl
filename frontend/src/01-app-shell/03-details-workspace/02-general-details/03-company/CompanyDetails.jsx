@@ -152,7 +152,7 @@ export default function CompanyDetails({
               { value: "STANDARD_120", label: "Standard · 120 days" },
               {
                 value: "HALF_YEAR_90",
-                label: "Half-year pattern · 90 day gap",
+                label: "Eligible small/dormant; OPC with 2+ directors",
               },
             ]}
             aiField={{

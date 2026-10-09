@@ -39,6 +39,8 @@ async function hydrateMeeting(company, meeting) {
     minutesCirculatedDate: formatDate(meeting.minutesCirculatedDate),
     commentsReceivedDate: formatDate(meeting.commentsReceivedDate),
     finalMinutesDate: formatDate(meeting.finalMinutesDate),
+    minutesSignedDate: formatDate(meeting.minutesSignedDate),
+    signedMinutesCirculatedDate: formatDate(meeting.signedMinutesCirculatedDate),
     notes: meeting.notes || "",
     documents: rows.map((row) => buildFileRecord(company, row)),
     createdAt: meeting.createdAt.toISOString(),

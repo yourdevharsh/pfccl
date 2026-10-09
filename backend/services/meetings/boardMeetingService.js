@@ -1,4 +1,4 @@
-import { addDays } from "./meetingDates.js";
+import { addDays, addMonths } from "./meetingDates.js";
 
 function isMonitoredCompany(company) {
   return !["TRANSFERRED", "CLOSED"].includes(
@@ -26,4 +26,29 @@ function calculateBoardDueDate(company, latestHeldDate) {
   return addDays(incorporationDate, 30);
 }
 
-export { isMonitoredCompany, calculateBoardDueDate };
+function calculateAgmDueDate(company, latestAgmDate) {
+  if (!company.incorporationDate) return null;
+  if (!latestAgmDate) {
+    const incorporation = company.incorporationDate;
+    const firstFinancialYearEnd = new Date(
+      Date.UTC(incorporation.getUTCFullYear() + 1, 2, 31),
+    );
+    return addMonths(firstFinancialYearEnd, 9);
+  }
+
+  const nextFinancialYearEnd = new Date(
+    Date.UTC(
+      latestAgmDate.getUTCFullYear() +
+        (latestAgmDate.getUTCMonth() >= 3 ? 1 : 0),
+      2,
+      31,
+    ),
+  );
+  const financialYearDeadline = addMonths(nextFinancialYearEnd, 6);
+  const fifteenMonthDeadline = addMonths(latestAgmDate, 15);
+  return financialYearDeadline < fifteenMonthDeadline
+    ? financialYearDeadline
+    : fifteenMonthDeadline;
+}
+
+export { isMonitoredCompany, calculateBoardDueDate, calculateAgmDueDate };

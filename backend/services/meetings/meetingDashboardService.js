@@ -1,6 +1,6 @@
 import {
-  startOfUtcDay,
   daysUntil,
+  addDays,
   parseDateOnly,
   formatDate,
   severityForDays,
@@ -8,19 +8,19 @@ import {
 import {
   isMonitoredCompany,
   calculateBoardDueDate,
+  calculateAgmDueDate,
 } from "./boardMeetingService.js";
 import { getPrisma } from "../prisma.js";
 
-function dashboardRow(company, boardMeetings, now) {
-  const latestHeldMeeting = boardMeetings.find((meeting) => meeting.heldDate);
+function dashboardRow(company, meetings, now) {
+  const boardMeetings = meetings.filter((meeting) => meeting.type === "BOARD");
+  const latestHeldMeeting = boardMeetings.find(
+    (meeting) => meeting.status === "HELD" && meeting.heldDate,
+  );
   const latestHeld = latestHeldMeeting?.heldDate;
-  const today = startOfUtcDay(now);
   const scheduled = boardMeetings
     .filter(
-      (meeting) =>
-        meeting.scheduledDate &&
-        meeting.status === "PLANNED" &&
-        new Date(`${meeting.scheduledDate}T00:00:00Z`) >= today,
+      (meeting) => meeting.scheduledDate && meeting.status === "PLANNED",
     )
     .sort((a, b) =>
       String(a.scheduledDate).localeCompare(String(b.scheduledDate)),
@@ -34,6 +34,41 @@ function dashboardRow(company, boardMeetings, now) {
       )
     : null;
   const days = dueDate ? daysUntil(dueDate, now) : null;
+  const agms = meetings.filter((meeting) => meeting.type === "AGM");
+  const latestAgm = agms.find(
+    (meeting) => meeting.status === "HELD" && meeting.heldDate,
+  )?.heldDate;
+  const agmDueDate = monitored
+    ? calculateAgmDueDate(
+        company,
+        latestAgm ? parseDateOnly(latestAgm) : null,
+      )
+    : null;
+  const agmDays = agmDueDate ? daysUntil(agmDueDate, now) : null;
+  const halfYearStartMonth = now.getUTCMonth() < 6 ? 0 : 6;
+  const halfYearStart = Date.UTC(
+    now.getUTCFullYear(),
+    halfYearStartMonth,
+    1,
+  );
+  const halfYearEnd = Date.UTC(
+    now.getUTCFullYear(),
+    halfYearStartMonth + 6,
+    0,
+  );
+  const calendarYearStart = Date.UTC(now.getUTCFullYear(), 0, 1);
+  const calendarYearEnd = Date.UTC(now.getUTCFullYear(), 11, 31);
+  const halfYearProfile =
+    String(company.meetingProfile || "STANDARD_120").toUpperCase() ===
+    "HALF_YEAR_90";
+  const boardMeetingsThisPeriod = boardMeetings.filter(
+    (meeting) =>
+      meeting.status === "HELD" &&
+      meeting.heldDate &&
+      meeting.heldDate.getTime() >=
+        (halfYearProfile ? halfYearStart : calendarYearStart) &&
+      meeting.heldDate.getTime() <= (halfYearProfile ? halfYearEnd : calendarYearEnd),
+  ).length;
 
   return {
     companyId: company.id,
@@ -48,6 +83,30 @@ function dashboardRow(company, boardMeetings, now) {
       ? formatDate(scheduled.scheduledDate)
       : null,
     nextDueDate: dueDate ? formatDate(dueDate) : null,
+    latestEarlyMeetingDate: dueDate
+      ? formatDate(addDays(dueDate, -1))
+      : null,
+    earliestEarlyMeetingDate: formatDate(
+      addDays(
+        latestHeld || company.incorporationDate,
+        halfYearProfile ? 90 : 1,
+      ),
+    ),
+    nextAgmDueDate: agmDueDate ? formatDate(agmDueDate) : null,
+    daysUntilAgmDue: agmDays,
+    daysUntilAnyMeetingDue: [days, agmDays]
+      .filter((value) => value != null)
+      .reduce(
+        (minimum, value) => Math.min(minimum, value),
+        Number.POSITIVE_INFINITY,
+      ),
+    boardMeetingsThisPeriod,
+    boardMeetingFrequencyRequirement: halfYearProfile ? 1 : 4,
+    boardMeetingPeriodLabel: halfYearProfile
+      ? now.getUTCMonth() < 6
+        ? "Jan-Jun"
+        : "Jul-Dec"
+      : `${now.getUTCFullYear()} CY`,
     daysUntilDue: days,
     severity: days == null ? "low" : severityForDays(days),
     canRecordEarly: isMonitoredCompany(company) && Boolean(dueDate && days > 0),
@@ -61,7 +120,6 @@ export async function getMeetingDashboard() {
     orderBy: [{ divisionId: "asc" }, { name: "asc" }],
     include: {
       meetings: {
-        where: { type: "BOARD" },
         orderBy: [{ heldDate: "desc" }, { scheduledDate: "asc" }],
       },
     },
@@ -73,8 +131,8 @@ export async function getMeetingDashboard() {
   return {
     generatedAt: now.toISOString(),
     companies: rows.sort((a, b) => {
-      const aDays = a.daysUntilDue ?? Number.POSITIVE_INFINITY;
-      const bDays = b.daysUntilDue ?? Number.POSITIVE_INFINITY;
+      const aDays = a.daysUntilAnyMeetingDue;
+      const bDays = b.daysUntilAnyMeetingDue;
       return aDays - bDays || a.companyName.localeCompare(b.companyName);
     }),
   };

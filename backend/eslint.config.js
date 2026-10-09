@@ -18,6 +18,7 @@ export default defineConfig([
         process: "readonly",
         console: "readonly",
         Buffer: "readonly",
+        URL: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
       },

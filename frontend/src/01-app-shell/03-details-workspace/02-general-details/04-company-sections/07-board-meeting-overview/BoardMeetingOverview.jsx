@@ -103,10 +103,9 @@ export default function BoardMeetingOverview({
         <div>
           <h3 className="detail-card-title">Board Meeting control centre</h3>
           <p>
-            See the next calculated due date for every company. If a Board
-            Meeting is held early within the due quarter, use “Held early” and
-            the server recalculates the following deadline from the new held
-            date.
+            See statutory Board Meeting and AGM deadlines for every company.
+            Recording a Board Meeting updates the next interval from its actual
+            held date.
           </p>
         </div>
         <div className="bm-kpi-strip" data-ai-ignore="true">
@@ -128,11 +127,13 @@ export default function BoardMeetingOverview({
 
       {showCompliance && (
         <div className="bm-rule-note" data-ai-ignore="true">
-          Standard profile: the next deadline is calculated from the latest held
-          Board Meeting and the applicable maximum interval. The first Board
-          Meeting uses the incorporation date + 30 days. Early meetings must be
-          before the calculated deadline and in the same financial quarter; the
-          server validates the change.
+          Standard profile: no more than 120 days may pass between consecutive
+          Board Meetings, with at least four meetings each calendar year. The first Board
+          Meeting is due within 30 days of incorporation. An earlier meeting
+          resets the interval from its actual held date. The half-year profile
+          applies only to eligible small or dormant companies, or OPCs with at
+          least two directors. AGM dates use the first-year or subsequent-year
+          statutory deadlines.
         </div>
       )}
 

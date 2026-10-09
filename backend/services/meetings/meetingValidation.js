@@ -31,6 +31,8 @@ function normalizeMeetingInput(payload = {}) {
     "minutesCirculatedDate",
     "commentsReceivedDate",
     "finalMinutesDate",
+    "minutesSignedDate",
+    "signedMinutesCirculatedDate",
   ];
   const dates = {};
   for (const field of dateFields) {
@@ -59,6 +61,11 @@ function normalizeMeetingInput(payload = {}) {
     const error = new Error(
       "A planned meeting cannot have a held date. Mark it as held first.",
     );
+    error.status = 422;
+    throw error;
+  }
+  if (status === "CANCELLED" && dates.heldDate) {
+    const error = new Error("A cancelled meeting cannot have a held date.");
     error.status = 422;
     throw error;
   }

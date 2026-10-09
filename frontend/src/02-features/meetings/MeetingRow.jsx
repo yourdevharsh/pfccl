@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FileField from "../documents/FileField";
 import {
   DateField,
@@ -23,15 +23,37 @@ export default function MeetingRow({
     scheduledDate: meeting.scheduledDate || "",
     heldDate: meeting.heldDate || "",
     status: meeting.status || "PLANNED",
+    earlyConducted: Boolean(meeting.earlyConducted),
     noticeSentDate: meeting.noticeSentDate || "",
     agendaSentDate: meeting.agendaSentDate || "",
     attendanceDate: meeting.attendanceDate || "",
     minutesCirculatedDate: meeting.minutesCirculatedDate || "",
     commentsReceivedDate: meeting.commentsReceivedDate || "",
     finalMinutesDate: meeting.finalMinutesDate || "",
+    minutesSignedDate: meeting.minutesSignedDate || "",
+    signedMinutesCirculatedDate: meeting.signedMinutesCirculatedDate || "",
     notes: meeting.notes || "",
   });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setDraft({
+      meetingNumber: meeting.meetingNumber || "",
+      scheduledDate: meeting.scheduledDate || "",
+      heldDate: meeting.heldDate || "",
+      status: meeting.status || "PLANNED",
+      earlyConducted: Boolean(meeting.earlyConducted),
+      noticeSentDate: meeting.noticeSentDate || "",
+      agendaSentDate: meeting.agendaSentDate || "",
+      attendanceDate: meeting.attendanceDate || "",
+      minutesCirculatedDate: meeting.minutesCirculatedDate || "",
+      commentsReceivedDate: meeting.commentsReceivedDate || "",
+      finalMinutesDate: meeting.finalMinutesDate || "",
+      minutesSignedDate: meeting.minutesSignedDate || "",
+      signedMinutesCirculatedDate: meeting.signedMinutesCirculatedDate || "",
+      notes: meeting.notes || "",
+    });
+  }, [meeting]);
 
   function updateField(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -60,6 +82,8 @@ export default function MeetingRow({
           ["Agenda", meeting.agendaSentDate],
           ["Draft minutes", meeting.minutesCirculatedDate],
           ["Final minutes", meeting.finalMinutesDate],
+          ["Signed", meeting.minutesSignedDate],
+          ["Signed copy circulated", meeting.signedMinutesCirculatedDate],
         ]
       : [];
 
@@ -154,6 +178,22 @@ export default function MeetingRow({
         />
       </div>
 
+      {draft.status === "HELD" &&
+        draft.heldDate &&
+        draft.scheduledDate &&
+        draft.heldDate < draft.scheduledDate && (
+          <label className="meeting-early-confirmation">
+            <input
+              type="checkbox"
+              checked={draft.earlyConducted}
+              onChange={(event) =>
+                updateField("earlyConducted", event.target.checked)
+              }
+            />
+            Confirm this meeting was held before its scheduled date
+          </label>
+        )}
+
       {workflow.length > 0 && (
         <div className="meeting-workflow-strip">
           {workflow.map(([label, date]) => (
@@ -242,6 +282,30 @@ export default function MeetingRow({
             companyId,
             detailKey: "meetings",
             path: aiPath("finalMinutesDate"),
+          }}
+        />
+        <DateField
+          label="Minutes signed"
+          value={draft.minutesSignedDate}
+          onChange={(event) => updateField("minutesSignedDate", event.target.value)}
+          aiField={{
+            name: "Minutes signed date",
+            companyId,
+            detailKey: "meetings",
+            path: aiPath("minutesSignedDate"),
+          }}
+        />
+        <DateField
+          label="Signed minutes circulated"
+          value={draft.signedMinutesCirculatedDate}
+          onChange={(event) =>
+            updateField("signedMinutesCirculatedDate", event.target.value)
+          }
+          aiField={{
+            name: "Signed minutes circulation date",
+            companyId,
+            detailKey: "meetings",
+            path: aiPath("signedMinutesCirculatedDate"),
           }}
         />
       </div>

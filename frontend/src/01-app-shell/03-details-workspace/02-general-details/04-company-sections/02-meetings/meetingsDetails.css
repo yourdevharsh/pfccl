@@ -330,6 +330,17 @@
 
 .meeting-save-button { min-height: 36px; }
 
+.meeting-early-confirmation {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-600);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.meeting-early-confirmation input { accent-color: var(--pfccl-navy); }
+
 .meeting-document-block { margin-top: 11px; }
 
 .meeting-register-empty {

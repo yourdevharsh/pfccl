@@ -1,9 +1,14 @@
 function parseDateOnly(value) {
   if (!value) return null;
-  const raw = String(value);
+  const raw =
+    value instanceof Date && !Number.isNaN(value.getTime())
+      ? value.toISOString().slice(0, 10)
+      : String(value);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
   const date = new Date(`${raw}T00:00:00.000Z`);
-  return Number.isNaN(date.getTime()) ? null : date;
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== raw
+    ? null
+    : date;
 }
 
 function formatDate(value) {
@@ -30,12 +35,14 @@ function daysUntil(date, now = new Date()) {
   );
 }
 
-function financialQuarter(date) {
-  const month = date.getUTCMonth() + 1;
-  if (month >= 4 && month <= 6) return `Q1-${date.getUTCFullYear()}`;
-  if (month >= 7 && month <= 9) return `Q2-${date.getUTCFullYear()}`;
-  if (month >= 10 && month <= 12) return `Q3-${date.getUTCFullYear()}`;
-  return `Q4-${month <= 3 ? date.getUTCFullYear() - 1 : date.getUTCFullYear()}`;
+function addMonths(date, months) {
+  const monthIndex = date.getUTCMonth() + months;
+  const year = date.getUTCFullYear() + Math.floor(monthIndex / 12);
+  const month = ((monthIndex % 12) + 12) % 12;
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  return new Date(
+    Date.UTC(year, month, Math.min(date.getUTCDate(), lastDay)),
+  );
 }
 
 function severityForDays(days) {
@@ -50,8 +57,8 @@ export {
   parseDateOnly,
   formatDate,
   severityForDays,
-  financialQuarter,
   daysUntil,
   addDays,
+  addMonths,
   startOfUtcDay,
 };
