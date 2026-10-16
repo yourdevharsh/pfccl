@@ -21,6 +21,12 @@ const TRANSFER_SECTIONS = [
   ["misc", "Miscellaneous"],
 ];
 
+const LIFECYCLE_STATUS_BY_TRANSFER_STATUS = {
+  Active: "ACTIVE",
+  Transferred: "TRANSFERRED",
+  Closed: "CLOSED",
+};
+
 export default function TransferDetails({
   company,
   updateCompanies,
@@ -62,9 +68,12 @@ export default function TransferDetails({
   );
   const notes = firstPath(record, ["notes", "remarks", "miscellaneous"], "");
   function updateTransferField(field, value) {
+    const lifecycleStatus =
+      field === "status" ? LIFECYCLE_STATUS_BY_TRANSFER_STATUS[value] : null;
     updateCompanies?.(company.id, (current) => ({
       ...current,
       transfer: { ...(current.transfer ?? {}), [field]: value },
+      ...(lifecycleStatus ? { status: lifecycleStatus } : {}),
     }));
   }
 

@@ -29,6 +29,8 @@ export default function FileField({ label, value, field, detailKey, companyId, o
 
   async function handleDelete(file) {
     if (!onDeleteFile || !file?.id) return;
+    const name = getFileName(file) || "this file";
+    if (!window.confirm(`Delete \"${name}\"? This cannot be undone.`)) return;
     setBusy(true);
     setError("");
     try {

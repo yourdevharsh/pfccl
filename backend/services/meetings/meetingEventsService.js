@@ -28,8 +28,11 @@ export async function getMeetingEvents({ days = 365, overdueDays = 30 } = {}) {
   const events = [];
 
   for (const company of companies) {
-    if (isMonitoredCompany(company)) {
-      const boardMeetings = company.meetings.filter(
+    // Transferred and closed companies do not have actionable Board Events,
+    // including scheduled-meeting and workflow reminders below.
+    if (!isMonitoredCompany(company)) continue;
+
+    const boardMeetings = company.meetings.filter(
         (meeting) => meeting.type === "BOARD",
       );
       const latestHeld = boardMeetings
@@ -138,7 +141,6 @@ export async function getMeetingEvents({ days = 365, overdueDays = 30 } = {}) {
             : "First AGM deadline based on the first financial year and incorporation date.",
         });
       }
-    }
 
     const plannedMeetings = company.meetings
       .filter(

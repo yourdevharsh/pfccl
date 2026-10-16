@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { formatDate } from "../../03-shared/helpers/dataHelpers";
 import { formatDaysRemaining } from "../../03-shared/ui/dataHelpers";
 import "./boardEventsSidebar.css";
@@ -18,6 +19,17 @@ const eventTypeLabel = {
 };
 
 export default function BoardEventsSidebar({ events = [], onOpenEvent }) {
+  const sortedEvents = useMemo(
+    () =>
+      [...events].sort(
+        (a, b) =>
+          Number(a.daysUntil) - Number(b.daysUntil) ||
+          String(a.companyName || "").localeCompare(String(b.companyName || "")) ||
+          String(a.title || "").localeCompare(String(b.title || "")),
+      ),
+    [events],
+  );
+
   return (
     <aside className="board-events-sidebar" aria-label="Date-bound events">
       <div className="board-events-header">
@@ -25,7 +37,7 @@ export default function BoardEventsSidebar({ events = [], onOpenEvent }) {
           <div className="board-events-eyebrow">WHAT NEEDS ATTENTION</div>
           <h2>Upcoming events</h2>
         </div>
-        <div className="board-events-count">{events.length}</div>
+        <div className="board-events-count">{sortedEvents.length}</div>
       </div>
 
       <div className="board-events-legend" aria-hidden="true">
@@ -48,14 +60,14 @@ export default function BoardEventsSidebar({ events = [], onOpenEvent }) {
       </div>
 
       <div className="board-events-list">
-        {events.length === 0 ? (
+        {sortedEvents.length === 0 ? (
           <div className="board-events-empty">
             <div className="board-events-empty-icon">✓</div>
             <strong>No date-bound actions</strong>
             <span>Nothing is currently due in the active reminder window.</span>
           </div>
         ) : (
-          events.map((event) => (
+          sortedEvents.map((event) => (
             <button
               type="button"
               className={`board-event-card urgency-${event.severity || "low"}`}

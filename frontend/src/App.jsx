@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CompanyTree from "./01-app-shell/02-company-tree/CompanyTree";
 import DetailsWorkspace from "./01-app-shell/03-details-workspace/DetailsWorkspace";
 import BoardEventsSidebar from "./01-app-shell/01-board-events/BoardEventsSidebar";
@@ -24,6 +24,15 @@ function App() {
     selectedStatusByDivision,
   });
   const companies = repository.companies;
+  const activeMeetingEvents = useMemo(
+    () =>
+      (repository.meetingEvents?.events || []).filter((event) => {
+        const company = companies.find((item) => item.id === event.companyId);
+        const status = String(company?.status || "").toUpperCase();
+        return !["TRANSFERRED", "CLOSED"].includes(status);
+      }),
+    [companies, repository.meetingEvents],
+  );
 
   useEffect(() => {
     if (!repository.divisions.length) return;
@@ -166,6 +175,43 @@ function App() {
     [companies, repository.deleteCompany, selectedNodeId],
   );
 
+  const updateCompany = useCallback(
+    (companyId, updater) => {
+      const current = companies.find((company) => company.id === companyId);
+      if (!current) return;
+
+      const next =
+        typeof updater === "function" ? updater(current) : { ...current, ...updater };
+      const currentStatus = String(current.status || "ACTIVE").toUpperCase();
+      const nextStatus = String(next.status || "ACTIVE").toUpperCase();
+      if (
+        currentStatus !== nextStatus &&
+        ["TRANSFERRED", "CLOSED"].includes(nextStatus) &&
+        !window.confirm(
+          `Mark this company as ${nextStatus.toLowerCase()}? Its Board Events will be removed.`,
+        )
+      )
+        return;
+      const incorporationYear = Number.parseInt(
+        String(next.incorporationDate || "").slice(0, 4),
+        10,
+      );
+      if (
+        next.division &&
+        Number.isInteger(incorporationYear) &&
+        next.incorporationDate !== current.incorporationDate
+      ) {
+        updateSelectedYearByDivision((years) => ({
+          ...years,
+          [next.division]: incorporationYear,
+        }));
+      }
+
+      repository.updateCompany(companyId, () => next);
+    },
+    [companies, repository.updateCompany],
+  );
+
   const openMeetingEvent = useCallback(
     (event) => {
       revealCompanyContext(event.companyId, event.division);
@@ -229,7 +275,7 @@ function App() {
       </header>
 
       <BoardEventsSidebar
-        events={repository.meetingEvents?.events || []}
+        events={activeMeetingEvents}
         onOpenEvent={openMeetingEvent}
       />
 
@@ -260,7 +306,7 @@ function App() {
               companies={companies}
               selectedYearByDivision={selectedYearByDivision}
               selectedStatusByDivision={selectedStatusByDivision}
-              updateCompanies={repository.updateCompany}
+              updateCompanies={updateCompany}
               onSelect={handleSelectNode}
               onUploadFiles={repository.uploadFiles}
               onDeleteFile={repository.deleteFile}

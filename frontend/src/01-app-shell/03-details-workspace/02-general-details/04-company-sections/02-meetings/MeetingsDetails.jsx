@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MeetingComplianceSummary from "../../../../../02-features/meetings/MeetingComplianceSummary";
 import MeetingRow from "../../../../../02-features/meetings/MeetingRow";
 import {
@@ -39,6 +39,11 @@ export default function MeetingsDetails({
     earlyConducted: false,
   });
   const [creating, setCreating] = useState(false);
+  const [expandedMeetingId, setExpandedMeetingId] = useState(null);
+  useEffect(() => {
+    if (meetingFocus?.companyId === company.id && meetingFocus.meetingId)
+      setExpandedMeetingId(meetingFocus.meetingId);
+  }, [company.id, meetingFocus]);
   const sortedMeetings = useMemo(
     () =>
       [...meetingRecords]
@@ -317,6 +322,12 @@ export default function MeetingsDetails({
               meeting={meeting}
               companyId={company.id}
               focused={meetingFocus?.meetingId === meeting.id}
+              expanded={expandedMeetingId === meeting.id}
+              onToggle={() =>
+                setExpandedMeetingId((current) =>
+                  current === meeting.id ? null : meeting.id,
+                )
+              }
               onUpdateMeeting={onUpdateMeeting}
               onDeleteMeeting={onDeleteMeeting}
               onUploadFiles={onUploadFiles}

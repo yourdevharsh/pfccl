@@ -12,6 +12,8 @@ export default function MeetingRow({
   meeting,
   companyId,
   focused,
+  expanded,
+  onToggle,
   onUpdateMeeting,
   onDeleteMeeting,
   onUploadFiles,
@@ -115,8 +117,24 @@ export default function MeetingRow({
           </span>
           <button
             type="button"
+            className="meeting-expand-button"
+            onClick={onToggle}
+            aria-expanded={expanded}
+            aria-controls={`meeting-details-${meeting.id}`}
+          >
+            {expanded ? "Collapse" : "Edit"}
+          </button>
+          <button
+            type="button"
             className="meeting-delete-button"
-            onClick={() => onDeleteMeeting(companyId, meeting.id)}
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Delete this meeting and its attached documents? This cannot be undone.",
+                )
+              )
+                onDeleteMeeting(companyId, meeting.id);
+            }}
             title="Delete meeting"
             aria-label="Delete meeting"
           >
@@ -125,7 +143,9 @@ export default function MeetingRow({
         </div>
       </div>
 
-      <div className="meeting-record-grid">
+      {expanded && (
+        <div id={`meeting-details-${meeting.id}`}>
+          <div className="meeting-record-grid">
         <NumberField
           label="Meeting no."
           min="1"
@@ -176,9 +196,9 @@ export default function MeetingRow({
             path: aiPath("status"),
           }}
         />
-      </div>
+          </div>
 
-      {draft.status === "HELD" &&
+          {draft.status === "HELD" &&
         draft.heldDate &&
         draft.scheduledDate &&
         draft.heldDate < draft.scheduledDate && (
@@ -194,7 +214,7 @@ export default function MeetingRow({
           </label>
         )}
 
-      {workflow.length > 0 && (
+          {workflow.length > 0 && (
         <div className="meeting-workflow-strip">
           {workflow.map(([label, date]) => (
             <span key={label} className={date ? "done" : "pending"}>
@@ -205,7 +225,7 @@ export default function MeetingRow({
         </div>
       )}
 
-      <div className="meeting-secondary-dates">
+          <div className="meeting-secondary-dates">
         <DateField
           label="Notice sent"
           value={draft.noticeSentDate}
@@ -308,9 +328,9 @@ export default function MeetingRow({
             path: aiPath("signedMinutesCirculatedDate"),
           }}
         />
-      </div>
+          </div>
 
-      <div className="meeting-record-footer">
+          <div className="meeting-record-footer">
         <TextField
           label="Notes"
           value={draft.notes}
@@ -332,9 +352,9 @@ export default function MeetingRow({
         >
           {saving ? "Saving…" : "Save changes"}
         </button>
-      </div>
+          </div>
 
-      <div className="meeting-document-block">
+          <div className="meeting-document-block">
         <FileField
           label={`${meeting.type} documents`}
           field={`meeting.${meeting.id}.documents`}
@@ -345,7 +365,9 @@ export default function MeetingRow({
           onDeleteFile={onDeleteFile}
           onOpenFile={onOpenFile}
         />
-      </div>
+          </div>
+        </div>
+      )}
     </article>
   );
 }

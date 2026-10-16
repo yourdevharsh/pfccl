@@ -57,6 +57,9 @@ export function PeopleRegister({ kind, rows, onChange, companyId }) {
   }
 
   function removeRow(rowId) {
+    const recordLabel = isDirector ? "director" : "shareholder";
+    if (!window.confirm(`Remove this ${recordLabel}? This cannot be undone.`))
+      return;
     persistRows(normalized.filter((row) => row.__rowId !== rowId));
   }
 

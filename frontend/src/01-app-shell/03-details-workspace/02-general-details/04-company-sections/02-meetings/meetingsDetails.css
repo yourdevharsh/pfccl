@@ -269,6 +269,23 @@
   border-color: rgb(181 45 45 / 18%);
 }
 
+.meeting-expand-button {
+  min-height: 29px;
+  padding: 0 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--pfccl-navy);
+  font-size: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.meeting-expand-button:hover {
+  border-color: var(--pfccl-gold-border);
+  background: var(--pfccl-gold-soft);
+}
+
 .meeting-record-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

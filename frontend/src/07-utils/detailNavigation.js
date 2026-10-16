@@ -119,7 +119,7 @@ export function buildDetailNavigation({
     previousLabel = division.toUpperCase();
 
     const firstSubDetail = COMPANY_SUB_DETAILS[0];
-    if (firstSubDetail) {
+    if (firstSubDetail && currentCompany) {
       nextId = `${currentCompany.id}-${firstSubDetail.key}`;
       nextLabel = `${firstSubDetail.name} · ${currentCompany.name}`;
     }
