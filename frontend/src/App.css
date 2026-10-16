@@ -307,6 +307,38 @@ select:focus-visible {
   box-shadow: var(--shadow-sm);
 }
 
+.app-change-tracker-actions {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: var(--surface-soft);
+  box-shadow: var(--shadow-xs);
+}
+
+.change-tracker-actions button {
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--pfccl-navy);
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.change-tracker-actions button:hover { background: var(--pfccl-navy-soft); }
+.change-tracker-actions button:disabled { cursor: wait; opacity: .65; }
+.change-tracker-actions .change-tracker-save { background: var(--pfccl-navy); color: #fff; }
+.change-tracker-actions .change-tracker-save:hover { background: var(--pfccl-navy-strong); }
+.change-tracker-actions .change-tracker-revert { color: var(--pfccl-red-strong); }
+
 .details-workspace.ai-selection-mode,
 .details-workspace.ai-selection-mode * {
   cursor: crosshair;

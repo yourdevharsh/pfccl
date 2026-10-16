@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { meetingApi, repositoryApi } from "../05-services/api";
 import { mergeCompanyIntoList, mergeDetailIntoCompany } from "../07-utils/dataMerge";
 import { getCurrentYear } from "../06-config/treeConfig";
+import useChangeTracker from "../01-app-shell/03-details-workspace/useChangeTracker";
 
 function detailCacheKey(companyId, detailKey) {
   return `${companyId}:${detailKey}`;
@@ -45,15 +46,18 @@ export function useRepositoryData({
   const [meetingsByCompany, setMeetingsByCompany] = useState({});
   const [meetingDashboard, setMeetingDashboard] = useState({ companies: [] });
   const [meetingEvents, setMeetingEvents] = useState({ events: [] });
+  const [savingChanges, setSavingChanges] = useState(false);
 
   const companiesRef = useRef([]);
   const companyRequestCache = useRef(new Map());
   const detailRequestCache = useRef(new Map());
   const detailLoadedCache = useRef(new Set());
   const meetingRequestCache = useRef(new Map());
-  const saveQueues = useRef(new Map());
-  const saveTimers = useRef(new Map());
   const meetingsRef = useRef({});
+  const pendingFileOperations = useRef([]);
+  const pendingMeetingOperations = useRef([]);
+  const pendingCompanyIds = useRef(new Set());
+  const changeTracker = useChangeTracker();
 
   useEffect(() => {
     companiesRef.current = companies;
@@ -70,6 +74,33 @@ export function useRepositoryData({
     companiesRef.current = next;
     setCompanies(next);
   }, []);
+
+  const replaceCompanyMeetings = useCallback((companyId, rows) => {
+    meetingsRef.current = { ...meetingsRef.current, [companyId]: rows };
+    setMeetingsByCompany((current) => ({ ...current, [companyId]: rows }));
+  }, []);
+
+  const restoreSnapshot = useCallback((snapshot) => {
+    if (!snapshot) return;
+    replaceCompanies(snapshot.companies);
+    meetingsRef.current = snapshot.meetings;
+    setMeetingsByCompany(snapshot.meetings);
+    pendingFileOperations.current = snapshot.fileOperations;
+    pendingMeetingOperations.current = snapshot.meetingOperations;
+    pendingCompanyIds.current = snapshot.companyIds;
+  }, [replaceCompanies]);
+
+  const cloneSnapshot = useCallback(() => ({
+    companies: structuredClone(companiesRef.current),
+    meetings: structuredClone(meetingsRef.current),
+    fileOperations: [...pendingFileOperations.current],
+    meetingOperations: [...pendingMeetingOperations.current],
+    companyIds: new Set(pendingCompanyIds.current),
+  }), []);
+
+  const recordChange = useCallback(() => {
+    changeTracker.record(cloneSnapshot());
+  }, [changeTracker, cloneSnapshot]);
 
   const refreshRepositoryMeta = useCallback(async () => {
     try {
@@ -289,47 +320,15 @@ export function useRepositoryData({
       );
       if (!current) return;
       const nextCompany = updater(current);
+      recordChange();
+      pendingCompanyIds.current.add(companyId);
       replaceCompanies((currentList) =>
         currentList.map((company) =>
           company.id === companyId ? nextCompany : company,
         ),
       );
-
-      const oldTimer = saveTimers.current.get(companyId);
-      if (oldTimer) clearTimeout(oldTimer);
-      saveTimers.current.set(
-        companyId,
-        setTimeout(() => {
-          const previousQueue =
-            saveQueues.current.get(companyId) || Promise.resolve();
-          const nextQueue = previousQueue
-            .catch(() => {})
-            .then(async () => {
-              const latest = companiesRef.current.find(
-                (company) => company.id === companyId,
-              );
-              if (!latest) return;
-              const { __fullLoaded, ...payload } = latest;
-              const saved = await repositoryApi.updateCompany(
-                companyId,
-                payload,
-              );
-              replaceCompanies((currentList) =>
-                mergeCompanyIntoList(currentList, saved?.data ?? saved),
-              );
-              await Promise.all([
-                refreshRepositoryMeta(),
-                refreshMeetingOverview(),
-              ]);
-            })
-            .catch((requestError) =>
-              setError(requestError.message || "Unable to save changes."),
-            );
-          saveQueues.current.set(companyId, nextQueue);
-        }, 300),
-      );
     },
-    [replaceCompanies, refreshMeetingOverview, refreshRepositoryMeta],
+    [recordChange, replaceCompanies],
   );
 
   const addCompany = useCallback(
@@ -389,102 +388,176 @@ export function useRepositoryData({
     return rows;
   }, []);
 
-  const uploadFiles = useCallback(
-    async ({ companyId, detailKey, field, files }) => {
-      const response = await repositoryApi.uploadFiles({
-        companyId,
-        detailKey,
-        field,
-        files,
-      });
-      const updatedCompany = response?.company ?? response?.data?.company;
-      if (updatedCompany)
-        replaceCompanies((current) =>
-          mergeCompanyIntoList(current, updatedCompany),
-        );
-      else await refreshCompanyDetail(companyId, detailKey);
-      if (detailKey === "meetings" && String(field).startsWith("meeting."))
-        await refreshMeetings(companyId);
-      return response;
-    },
-    [refreshCompanyDetail, refreshMeetings, replaceCompanies],
-  );
+  const changeFileList = useCallback((companyId, detailKey, field, transform) => {
+    if (detailKey === "meetings" && String(field).startsWith("meeting.")) {
+      const [, meetingId, property] = String(field).split(".");
+      replaceCompanyMeetings(companyId, (meetingsRef.current[companyId] || []).map((meeting) =>
+        meeting.id === meetingId
+          ? { ...meeting, [property]: transform(Array.isArray(meeting[property]) ? meeting[property] : []) }
+          : meeting,
+      ));
+      return;
+    }
+    const property = { "master-data": "master", meetings: "meetings", filings: "filings", transfer: "transfer", certificates: "certificates", miscellaneous: "misc" }[detailKey];
+    if (!property) return;
+    const path = String(field).replace(new RegExp(`^${property}\\.`), "").split(".");
+    replaceCompanies((rows) => rows.map((company) => {
+      if (company.id !== companyId) return company;
+      const next = structuredClone(company);
+      let target = next[property] ||= {};
+      path.slice(0, -1).forEach((part) => { target = target[part] ||= {}; });
+      const last = path.at(-1);
+      target[last] = transform(Array.isArray(target[last]) ? target[last] : []);
+      return next;
+    }));
+  }, [replaceCompanies, replaceCompanyMeetings]);
 
-  const deleteFile = useCallback(
-    async ({ companyId, detailKey, field, fileId }) => {
-      const response = await repositoryApi.deleteFile({
-        companyId,
-        detailKey,
-        field,
-        fileId,
-      });
-      const updatedCompany = response?.company ?? response?.data?.company;
-      if (updatedCompany)
-        replaceCompanies((current) =>
-          mergeCompanyIntoList(current, updatedCompany),
-        );
-      else await refreshCompanyDetail(companyId, detailKey);
-      if (detailKey === "meetings" && String(field).startsWith("meeting."))
-        await refreshMeetings(companyId);
-      return response;
-    },
-    [refreshCompanyDetail, refreshMeetings, replaceCompanies],
-  );
+  const uploadFiles = useCallback(async ({ companyId, detailKey, field, files }) => {
+    const additions = Array.from(files || []).map((file) => ({
+      id: `draft-file-${crypto.randomUUID()}`,
+      originalName: file.name,
+      name: file.name,
+      mimeType: file.type,
+      size: file.size,
+      url: URL.createObjectURL(file),
+      __draftFile: true,
+    }));
+    if (!additions.length) return;
+    recordChange();
+    pendingFileOperations.current.push({ type: "upload", companyId, detailKey, field, files: Array.from(files), draftIds: additions.map((file) => file.id) });
+    changeFileList(companyId, detailKey, field, (current) => [...current, ...additions]);
+  }, [changeFileList, recordChange]);
 
-  const replaceCompanyMeetings = useCallback((companyId, rows) => {
-    meetingsRef.current = { ...meetingsRef.current, [companyId]: rows };
-    setMeetingsByCompany((current) => ({ ...current, [companyId]: rows }));
-  }, []);
+  const deleteFile = useCallback(async ({ companyId, detailKey, field, fileId }) => {
+    recordChange();
+    const matchingUpload = pendingFileOperations.current.findIndex((operation) => operation.type === "upload" && operation.companyId === companyId && operation.draftIds.includes(fileId));
+    if (matchingUpload >= 0) {
+      const [operation] = pendingFileOperations.current.splice(matchingUpload, 1);
+      operation.files.forEach((file) => URL.revokeObjectURL(file.url));
+    } else {
+      pendingFileOperations.current.push({ type: "delete", companyId, detailKey, field, fileId });
+    }
+    changeFileList(companyId, detailKey, field, (current) => current.filter((file) => file.id !== fileId));
+  }, [changeFileList, recordChange]);
 
   const createMeeting = useCallback(
     async (companyId, payload) => {
-      const response = await meetingApi.createMeeting(companyId, payload);
-      const rows = await meetingApi.getCompanyMeetings(companyId);
-      replaceCompanyMeetings(companyId, rows?.data ?? rows ?? []);
-      await refreshMeetingOverview();
-      return response?.data ?? response;
+      recordChange();
+      const meeting = { ...payload, id: `draft-meeting-${crypto.randomUUID()}`, documents: [] };
+      pendingMeetingOperations.current.push({ type: "create", companyId, meeting });
+      replaceCompanyMeetings(companyId, [...(meetingsRef.current[companyId] || []), meeting]);
+      return meeting;
     },
-    [replaceCompanyMeetings, refreshMeetingOverview],
+    [recordChange, replaceCompanyMeetings],
   );
 
   const updateMeeting = useCallback(
     async (companyId, meetingId, payload) => {
-      const response = await meetingApi.updateMeeting(
-        companyId,
-        meetingId,
-        payload,
-      );
-      const rows = await meetingApi.getCompanyMeetings(companyId);
-      replaceCompanyMeetings(companyId, rows?.data ?? rows ?? []);
-      await refreshMeetingOverview();
-      return response?.data ?? response;
+      recordChange();
+      pendingMeetingOperations.current.push({ type: "update", companyId, meetingId, payload });
+      replaceCompanyMeetings(companyId, (meetingsRef.current[companyId] || []).map((meeting) =>
+        meeting.id === meetingId ? { ...meeting, ...payload } : meeting,
+      ));
+      return payload;
     },
-    [replaceCompanyMeetings, refreshMeetingOverview],
+    [recordChange, replaceCompanyMeetings],
   );
 
   const deleteMeeting = useCallback(
     async (companyId, meetingId) => {
-      await meetingApi.deleteMeeting(companyId, meetingId);
-      const rows = await meetingApi.getCompanyMeetings(companyId);
-      replaceCompanyMeetings(companyId, rows?.data ?? rows ?? []);
-      await refreshMeetingOverview();
+      recordChange();
+      pendingMeetingOperations.current.push({ type: "delete", companyId, meetingId });
+      replaceCompanyMeetings(companyId, (meetingsRef.current[companyId] || []).filter((meeting) => meeting.id !== meetingId));
     },
-    [replaceCompanyMeetings, refreshMeetingOverview],
+    [recordChange, replaceCompanyMeetings],
   );
 
   const recordEarlyBoardMeeting = useCallback(
     async (companyId, heldDate) => {
-      const response = await meetingApi.recordEarlyBoardMeeting(
-        companyId,
-        heldDate,
-      );
-      const rows = await meetingApi.getCompanyMeetings(companyId);
-      replaceCompanyMeetings(companyId, rows?.data ?? rows ?? []);
-      await refreshMeetingOverview();
-      return response?.data ?? response;
+      recordChange();
+      pendingMeetingOperations.current.push({ type: "recordEarly", companyId, heldDate });
+      return null;
     },
-    [replaceCompanyMeetings, refreshMeetingOverview],
+    [recordChange],
   );
+
+  const undoChanges = useCallback(() => {
+    restoreSnapshot(changeTracker.undo());
+  }, [changeTracker, restoreSnapshot]);
+
+  const revertChanges = useCallback(() => {
+    restoreSnapshot(changeTracker.revert());
+  }, [changeTracker, restoreSnapshot]);
+
+  const saveChanges = useCallback(async () => {
+    if (!changeTracker.changeCount || savingChanges) return;
+    setError("");
+    setSavingChanges(true);
+    try {
+      // Company fields are saved once per company, regardless of how many
+      // individual keystrokes were made while editing.
+      for (const companyId of pendingCompanyIds.current) {
+        const company = companiesRef.current.find((item) => item.id === companyId);
+        if (!company) continue;
+        const { __fullLoaded, ...payload } = company;
+        await repositoryApi.updateCompany(companyId, payload);
+      }
+
+      const draftMeetingIds = new Map();
+      for (const operation of pendingMeetingOperations.current) {
+        if (operation.type === "create") {
+          const saved = await meetingApi.createMeeting(operation.companyId, operation.meeting);
+          const meeting = saved?.data ?? saved;
+          draftMeetingIds.set(operation.meeting.id, meeting.id);
+        } else if (operation.type === "update") {
+          const meetingId = draftMeetingIds.get(operation.meetingId) || operation.meetingId;
+          if (!String(meetingId).startsWith("draft-meeting-"))
+            await meetingApi.updateMeeting(operation.companyId, meetingId, operation.payload);
+        } else if (operation.type === "delete") {
+          const meetingId = draftMeetingIds.get(operation.meetingId) || operation.meetingId;
+          if (!String(meetingId).startsWith("draft-meeting-"))
+            await meetingApi.deleteMeeting(operation.companyId, meetingId);
+        } else if (operation.type === "recordEarly") {
+          await meetingApi.recordEarlyBoardMeeting(operation.companyId, operation.heldDate);
+        }
+      }
+
+      for (const operation of pendingFileOperations.current) {
+        const meetingMatch = String(operation.field).match(/^meeting\.([^.]*)\./);
+        const field = meetingMatch && draftMeetingIds.has(meetingMatch[1])
+          ? operation.field.replace(meetingMatch[1], draftMeetingIds.get(meetingMatch[1]))
+          : operation.field;
+        if (operation.type === "upload")
+          await repositoryApi.uploadFiles({ ...operation, field });
+        else
+          await repositoryApi.deleteFile({ ...operation, field });
+      }
+
+      const companyIds = new Set([
+        ...pendingCompanyIds.current,
+        ...pendingMeetingOperations.current.map((operation) => operation.companyId),
+        ...pendingFileOperations.current.map((operation) => operation.companyId),
+      ]);
+      await Promise.all([
+        ...[...companyIds].map(async (companyId) => {
+          const response = await repositoryApi.getCompany(companyId);
+          replaceCompanies((current) => mergeCompanyIntoList(current, { ...(response?.data ?? response), __fullLoaded: true }));
+          const meetings = await meetingApi.getCompanyMeetings(companyId);
+          replaceCompanyMeetings(companyId, meetings?.data ?? meetings ?? []);
+        }),
+        refreshRepositoryMeta(),
+        refreshMeetingOverview(),
+      ]);
+      pendingCompanyIds.current = new Set();
+      pendingMeetingOperations.current = [];
+      pendingFileOperations.current = [];
+      changeTracker.clear();
+    } catch (requestError) {
+      setError(requestError.message || "Unable to save changes. Your unsaved changes are still available.");
+    } finally {
+      setSavingChanges(false);
+    }
+  }, [changeTracker, refreshMeetingOverview, refreshRepositoryMeta, replaceCompanies, replaceCompanyMeetings, savingChanges]);
 
   return {
     root,
@@ -499,6 +572,11 @@ export function useRepositoryData({
     ensureDetail,
     ensureMeetings,
     updateCompany: persistCompanyUpdate,
+    changeCount: changeTracker.changeCount,
+    savingChanges,
+    saveChanges,
+    undoChanges,
+    revertChanges,
     addCompany,
     deleteCompany,
     uploadFiles,

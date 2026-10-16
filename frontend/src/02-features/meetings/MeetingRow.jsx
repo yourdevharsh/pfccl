@@ -130,7 +130,7 @@ export default function MeetingRow({
             onClick={() => {
               if (
                 window.confirm(
-                  "Delete this meeting and its attached documents? This cannot be undone.",
+                  "Remove this meeting and its attached documents? The change will be staged until you save.",
                 )
               )
                 onDeleteMeeting(companyId, meeting.id);
@@ -350,7 +350,7 @@ export default function MeetingRow({
           onClick={save}
           disabled={saving}
         >
-          {saving ? "Saving…" : "Save changes"}
+          {saving ? "Staging…" : "Stage changes"}
         </button>
           </div>
 

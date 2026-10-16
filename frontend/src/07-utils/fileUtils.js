@@ -45,7 +45,7 @@ export function getFileUrl(file) {
 
   // The file id is the canonical repository identity. Prefer it even when a
   // legacy absolute/path URL is still present in older database records.
-  if (typeof file === "object" && file.id) {
+  if (typeof file === "object" && file.id && !file.__draftFile) {
     return `${apiBase}/files/${encodeURIComponent(file.id)}`;
   }
 

@@ -30,7 +30,7 @@ export default function FileField({ label, value, field, detailKey, companyId, o
   async function handleDelete(file) {
     if (!onDeleteFile || !file?.id) return;
     const name = getFileName(file) || "this file";
-    if (!window.confirm(`Delete \"${name}\"? This cannot be undone.`)) return;
+    if (!window.confirm(`Remove \"${name}\" from the pending changes?`)) return;
     setBusy(true);
     setError("");
     try {
@@ -85,7 +85,7 @@ export default function FileField({ label, value, field, detailKey, companyId, o
               </button>
               <div className="document-entry-actions file-entry-actions">
                 <button type="button" className="file-icon-button" onClick={() => createFileDownload(file)} title="Download file" aria-label={`Download ${name}`}><DownloadIcon /></button>
-                <button type="button" className="file-icon-button danger" disabled={busy || !file?.id} onClick={() => handleDelete(file)} title={file?.id ? "Delete file" : "Delete unavailable for this legacy file"} aria-label={`Delete ${name}`}><DeleteIcon /></button>
+                <button type="button" className="file-icon-button danger" disabled={busy || !file?.id} onClick={() => handleDelete(file)} title={file?.id ? "Remove file" : "Delete unavailable for this legacy file"} aria-label={`Delete ${name}`}><DeleteIcon /></button>
               </div>
             </div>
           );

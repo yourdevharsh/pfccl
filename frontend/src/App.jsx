@@ -269,6 +269,13 @@ function App() {
             <div className="brand-subtitle">Subsidiaries Repo</div>
           </div>
         </div>
+        {repository.changeCount > 0 && (
+          <div className="change-tracker-actions app-change-tracker-actions" aria-label="Pending changes">
+            <button type="button" className="change-tracker-save" onClick={repository.saveChanges} disabled={repository.savingChanges}>{repository.savingChanges ? "Saving…" : "Save"}</button>
+            <button type="button" onClick={repository.undoChanges} disabled={repository.savingChanges}>Undo</button>
+            <button type="button" className="change-tracker-revert" onClick={repository.revertChanges} disabled={repository.savingChanges}>Revert</button>
+          </div>
+        )}
         {repository.error && (
           <div className="app-error">{repository.error}</div>
         )}
