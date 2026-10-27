@@ -48,11 +48,10 @@ export default function MeetingsDetails({
     () =>
       [...meetingRecords]
         .filter((meeting) => filter === "ALL" || meeting.type === filter)
-        .sort(
-          (a, b) =>
-            String(b.heldDate || b.scheduledDate || "").localeCompare(
-              String(a.heldDate || a.scheduledDate || ""),
-            ),
+        .sort((a, b) =>
+          String(b.heldDate || b.scheduledDate || "").localeCompare(
+            String(a.heldDate || a.scheduledDate || ""),
+          ),
         ),
     [meetingRecords, filter],
   );
