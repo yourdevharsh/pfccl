@@ -5,3 +5,5 @@ node_modules/
 generated/
 storage/
 !storage/.gitkeep
+.admin-credentials
+.jwt-secret

@@ -1,4 +1,6 @@
 import { useId } from "react";
+import { useAuth } from "../../04-hooks/auth";
+import { PERMISSIONS } from "../../06-config/permissions";
 import "./formField.css";
 
 function normalizeId(value) {
@@ -44,6 +46,13 @@ export function TextField(props) {
     name,
     ...fieldProps
   } = props;
+  const { can } = useAuth();
+  const aiField = fieldProps.aiField;
+  const isNewRecord = String(aiField?.path || "").startsWith("new.");
+  const permissionDisabled = Boolean(aiField) && (
+    (!can(PERMISSIONS.UPDATE_COMPANY) && !isNewRecord)
+    || (aiField.path === "company.name" && !can(PERMISSIONS.RENAME_COMPANY))
+  );
   return (
     <FormField {...fieldProps}>
       {({ fieldId }) => (
@@ -53,7 +62,7 @@ export function TextField(props) {
           type={type}
           value={value ?? ""}
           placeholder={placeholder}
-          disabled={disabled}
+          disabled={disabled || permissionDisabled}
           onChange={onChange}
         />
       )}
@@ -80,6 +89,9 @@ export function TextAreaField(props) {
     name,
     ...fieldProps
   } = props;
+  const { can } = useAuth();
+  const aiField = fieldProps.aiField;
+  const permissionDisabled = Boolean(aiField) && !can(PERMISSIONS.UPDATE_COMPANY);
   return (
     <FormField {...fieldProps}>
       {({ fieldId }) => (
@@ -88,7 +100,7 @@ export function TextAreaField(props) {
           name={name}
           value={value ?? ""}
           placeholder={placeholder}
-          disabled={disabled}
+          disabled={disabled || permissionDisabled}
           rows={rows}
           onChange={onChange}
         />
@@ -105,6 +117,13 @@ export function SelectField({
   name,
   ...fieldProps
 }) {
+  const { can } = useAuth();
+  const aiField = fieldProps.aiField;
+  const isNewRecord = String(aiField?.path || "").startsWith("new.");
+  const permissionDisabled = Boolean(aiField) && (
+    (!can(PERMISSIONS.UPDATE_COMPANY) && !isNewRecord)
+    || (aiField.path === "company.name" && !can(PERMISSIONS.RENAME_COMPANY))
+  );
   return (
     <FormField {...fieldProps}>
       {({ fieldId }) => (
@@ -112,7 +131,7 @@ export function SelectField({
           id={fieldId}
           name={name}
           value={value ?? ""}
-          disabled={disabled}
+          disabled={disabled || permissionDisabled}
           onChange={onChange}
         >
           {options.map((option) => (

@@ -98,3 +98,20 @@ model Meeting {
   @@index([scheduledDate])
   @@index([heldDate])
 }
+
+enum AdminRole {
+  SUPER
+  MAJOR
+  MINOR
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  role         AdminRole @default(MINOR)
+  active       Boolean   @default(true)
+  tokenVersion Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}

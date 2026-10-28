@@ -22,11 +22,12 @@
 }
 
 .root-drop,
-.division-branch::before,
-.company-list-wrapper::before {
+.division-branch::before {
   background: linear-gradient(180deg, var(--pfccl-navy), rgb(30 45 83 / 30%));
   box-shadow: 0 0 0 1px rgb(30 45 83 / 5%);
 }
+
+/* .company-list-wrapper::before */
 
 .root-drop {
   width: 3px;

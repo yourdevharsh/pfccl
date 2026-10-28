@@ -6,15 +6,18 @@ import { DIVISIONS } from "./constants.js";
 import repositoryRoutes from "./routes/repositoryRoutes.js";
 import meetingRoutes from "./routes/meetingRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import { sendError } from "./utils/http.js";
 import { ensureStorage, ensureDatabase } from "./services/storage.js";
 import { connectDatabase } from "./services/prisma.js";
 import { assertSafeSegment, safeJoin } from "./utils/pathSafety.js";
+import { ensureInitialSuperAdmin, requireAuth } from "./services/auth.js";
 
 export async function createApp() {
   await ensureStorage();
   await connectDatabase();
   await ensureDatabase();
+  await ensureInitialSuperAdmin();
 
   const app = express();
 
@@ -22,13 +25,32 @@ export async function createApp() {
     ? null
     : config.corsOrigin.split(",").map((item) => item.trim()).filter(Boolean);
 
+  function isOriginAllowed(origin) {
+    if (!origin || !allowedOrigins || allowedOrigins.includes(origin)) {
+      return true;
+    }
+    // In development mode, allow localhost/127.0.0.1 on any port and desktop Tauri webviews
+    if (!config.isProduction) {
+      if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin)) {
+        return true;
+      }
+      if (origin.startsWith("tauri://") || origin.startsWith("https://tauri.localhost") || origin.startsWith("http://tauri.localhost")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   app.use(cors({
     origin(origin, callback) {
-      if (!origin || !allowedOrigins || allowedOrigins.includes(origin)) {
+      if (isOriginAllowed(origin)) {
         callback(null, true);
         return;
       }
-      callback(new Error("CORS origin is not allowed."));
+      console.warn(`[cors] Blocked request from disallowed origin: ${origin}`);
+      const forbiddenError = new Error(`CORS origin '${origin}' is not allowed.`);
+      forbiddenError.status = 403;
+      callback(forbiddenError);
     },
     credentials: true,
   }));
@@ -39,6 +61,8 @@ export async function createApp() {
     res.json({ ok: true, service: "pfccL-subsidiaries-api", database: "connected" });
   });
 
+  app.use("/api/auth", authRoutes);
+  app.use("/api", requireAuth);
   app.use("/api/ai", aiRoutes);
   app.use("/api", meetingRoutes);
   app.use("/api", repositoryRoutes);
@@ -46,6 +70,7 @@ export async function createApp() {
   // Backward-compatible alias for file URLs already stored as /files/...
   app.get(
     "/files/:division/:year/:companyId/:detailDirectory/:fileName",
+    requireAuth,
     async (req, res, next) => {
       try {
         const normalizedDivision = String(req.params.division || "").trim().toLowerCase();

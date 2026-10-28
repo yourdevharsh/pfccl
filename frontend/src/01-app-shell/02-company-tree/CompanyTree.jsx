@@ -27,6 +27,8 @@ function CompanyTree({
   divisions = [],
   root,
   loading = false,
+  canAddCompany = false,
+  canDeleteCompany = false,
 }) {
   const years = getCompanyYears();
   const currentYear = getCurrentYear();
@@ -126,7 +128,7 @@ function CompanyTree({
           {getIncorporationYear(company) || "—"}
         </span>
 
-        <button
+        {canDeleteCompany && <button
           type="button"
           className="company-list-delete"
           onClick={(event) => {
@@ -138,7 +140,7 @@ function CompanyTree({
           aria-label={`Delete ${company.name}`}
         >
           ×
-        </button>
+        </button>}
       </li>
     );
   }
@@ -210,7 +212,7 @@ function CompanyTree({
                               hasToggle
                               onToggle={() => toggleNode(division.id)}
                               onSelect={() => onSelect(division.id)}
-                              onAdd={() => handleAddCompany(division.id)}
+                              onAdd={canAddCompany ? () => handleAddCompany(division.id) : undefined}
                             />
 
                             {!divisionCollapsed && (

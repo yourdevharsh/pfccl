@@ -38,7 +38,7 @@ function TreeNode({
           {name}
         </button>
 
-        {type === "division" && (
+        {type === "division" && onAdd && (
           <button
             type="button"
             className="tree-action tree-add"

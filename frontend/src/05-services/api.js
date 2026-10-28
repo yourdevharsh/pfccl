@@ -167,4 +167,32 @@ export const aiApi = {
   },
 };
 
+export const authApi = {
+  login(credentials) {
+    return request("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+  },
+  logout() {
+    return request("/auth/logout", { method: "POST" });
+  },
+  me() {
+    return request("/auth/me");
+  },
+  getAdmins() {
+    return request("/auth/admins");
+  },
+  createAdmin(payload) {
+    return request("/auth/admins", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  },
+  updateAdmin(id, payload) {
+    return request(`/auth/admins/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  },
+  deleteAdmin(id) {
+    return request(`/auth/admins/${encodeURIComponent(id)}`, { method: "DELETE" });
+  },
+};
+
 export { API_BASE_URL };

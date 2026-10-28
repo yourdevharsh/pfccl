@@ -85,16 +85,16 @@ export default function FileField({ label, value, field, detailKey, companyId, o
               </button>
               <div className="document-entry-actions file-entry-actions">
                 <button type="button" className="file-icon-button" onClick={() => createFileDownload(file)} title="Download file" aria-label={`Download ${name}`}><DownloadIcon /></button>
-                <button type="button" className="file-icon-button danger" disabled={busy || !file?.id} onClick={() => handleDelete(file)} title={file?.id ? "Remove file" : "Delete unavailable for this legacy file"} aria-label={`Delete ${name}`}><DeleteIcon /></button>
+                {onDeleteFile && <button type="button" className="file-icon-button danger" disabled={busy || !file?.id} onClick={() => handleDelete(file)} title={file?.id ? "Remove file" : "Delete unavailable for this legacy file"} aria-label={`Delete ${name}`}><DeleteIcon /></button>}
               </div>
             </div>
           );
         })}
-        <label htmlFor={inputId} className={`document-add-row file-add-row ${busy ? "disabled" : ""}`}>
+        {onUpload && <label htmlFor={inputId} className={`document-add-row file-add-row ${busy ? "disabled" : ""}`}>
           <span className="file-add-icon" aria-hidden="true"><PlusIcon /></span>
           <span>{busy ? "Saving files…" : files.length ? "Add more files" : "Choose files"}</span>
           <input id={inputId} type="file" accept={accept} multiple disabled={busy} onChange={handleFileChange} />
-        </label>
+        </label>}
       </div>
       {error && <div className="document-field-error" role="alert">{error}</div>}
     </div>

@@ -58,6 +58,7 @@ export default function MeetingRow({
   }, [meeting]);
 
   function updateField(field, value) {
+    if (!onUpdateMeeting) return;
     setDraft((current) => ({ ...current, [field]: value }));
   }
 
@@ -115,16 +116,16 @@ export default function MeetingRow({
           >
             {meeting.status.replaceAll("_", " ")}
           </span>
-          <button
+          {(onUpdateMeeting || onUploadFiles) && <button
             type="button"
             className="meeting-expand-button"
             onClick={onToggle}
             aria-expanded={expanded}
             aria-controls={`meeting-details-${meeting.id}`}
           >
-            {expanded ? "Collapse" : "Edit"}
-          </button>
-          <button
+            {expanded ? "Collapse" : onUpdateMeeting ? "Edit" : "Documents"}
+          </button>}
+          {onDeleteMeeting && <button
             type="button"
             className="meeting-delete-button"
             onClick={() => {
@@ -139,7 +140,7 @@ export default function MeetingRow({
             aria-label="Delete meeting"
           >
             ×
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -343,7 +344,7 @@ export default function MeetingRow({
             path: aiPath("notes"),
           }}
         />
-        <button
+        {onUpdateMeeting && <button
           type="button"
           className="detail-button primary meeting-save-button"
           data-ai-ignore="true"
@@ -351,7 +352,7 @@ export default function MeetingRow({
           disabled={saving}
         >
           {saving ? "Staging…" : "Stage changes"}
-        </button>
+        </button>}
           </div>
 
           <div className="meeting-document-block">

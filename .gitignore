@@ -45,3 +45,7 @@ Thumbs.db
 storage
 
 graph.svg
+
+# Local authentication bootstrap material (created by the API; never commit)
+backend/.admin-credentials
+backend/.jwt-secret

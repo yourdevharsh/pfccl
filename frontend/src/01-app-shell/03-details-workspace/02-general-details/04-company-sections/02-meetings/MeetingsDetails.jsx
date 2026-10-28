@@ -145,17 +145,17 @@ export default function MeetingsDetails({
           <span>Total</span>
           <strong>{counts.ALL || 0}</strong>
         </div>
-        <button
+        {onCreateMeeting && <button
           type="button"
           data-ai-ignore="true"
           className="detail-button primary meetings-add-button"
           onClick={() => setShowCreate((current) => !current)}
         >
           {showCreate ? "Close" : "+ Add meeting"}
-        </button>
+        </button>}
       </div>
 
-      {showCreate && (
+      {showCreate && onCreateMeeting && (
         <div className="detail-card meeting-create-card">
           <div className="meeting-create-head">
             <h3 className="detail-card-title">New meeting</h3>

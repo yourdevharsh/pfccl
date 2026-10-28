@@ -14,6 +14,8 @@ import {
 } from "../services/meetings/meetingService.js";
 
 import { assertSafeSegment } from "../utils/pathSafety.js";
+import { requirePermission } from "../services/auth.js";
+import { PERMISSIONS } from "../services/authorization.js";
 
 const router = express.Router();
 
@@ -46,6 +48,7 @@ router.get(
 
 router.post(
   "/companies/:companyId/meetings/board/early",
+  requirePermission(PERMISSIONS.CREATE_MEETING),
   asyncRoute(async (req, res) => {
     assertSafeSegment(req.params.companyId, "company id");
     sendData(
@@ -58,6 +61,7 @@ router.post(
 
 router.post(
   "/companies/:companyId/meetings",
+  requirePermission(PERMISSIONS.CREATE_MEETING),
   asyncRoute(async (req, res) => {
     assertSafeSegment(req.params.companyId, "company id");
     sendData(
@@ -70,6 +74,7 @@ router.post(
 
 router.patch(
   "/companies/:companyId/meetings/:meetingId",
+  requirePermission(PERMISSIONS.UPDATE_MEETING),
   asyncRoute(async (req, res) => {
     assertSafeSegment(req.params.companyId, "company id");
     assertSafeSegment(req.params.meetingId, "meeting id");
@@ -86,6 +91,7 @@ router.patch(
 
 router.delete(
   "/companies/:companyId/meetings/:meetingId",
+  requirePermission(PERMISSIONS.DELETE_MEETING),
   asyncRoute(async (req, res) => {
     assertSafeSegment(req.params.companyId, "company id");
     assertSafeSegment(req.params.meetingId, "meeting id");

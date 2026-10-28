@@ -22,6 +22,8 @@ import {
 } from "../services/storage.js";
 import { asyncRoute, sendData } from "../utils/http.js";
 import { assertSafeDetailKey, assertSafeSegment, safeJoin } from "../utils/pathSafety.js";
+import { requirePermission } from "../services/auth.js";
+import { hasPermission, PERMISSIONS } from "../services/authorization.js";
 
 const router = express.Router();
 const upload = multer({
@@ -95,12 +97,12 @@ router.get("/companies/:companyId/details/:detailKey", asyncRoute(async (req, re
   sendData(res, await readDetail(found.company, req.params.detailKey));
 }));
 
-router.post("/companies", asyncRoute(async (req, res) => {
+router.post("/companies", requirePermission(PERMISSIONS.CREATE_COMPANY), asyncRoute(async (req, res) => {
   const company = await createCompany(req.body || {});
   sendData(res, company, 201);
 }));
 
-router.patch("/companies/:companyId", asyncRoute(async (req, res) => {
+router.patch("/companies/:companyId", requirePermission(PERMISSIONS.UPDATE_COMPANY), asyncRoute(async (req, res) => {
   const found = await findCompany(req.params.companyId);
   if (!found) {
     const error = new Error("Company not found.");
@@ -109,13 +111,18 @@ router.patch("/companies/:companyId", asyncRoute(async (req, res) => {
   }
 
   const next = normalizeCompanyPatch(req.body || {}, found.company);
+  if (next.name !== found.company.name && !hasPermission(req.user.role, PERMISSIONS.RENAME_COMPANY)) {
+    const error = new Error("You do not have permission to rename a company.");
+    error.status = 403;
+    throw error;
+  }
   await moveCompanyIfLocationChanged(found.company, next);
   await saveCompany(next);
   const refreshed = (await findCompany(req.params.companyId))?.company;
   sendData(res, refreshed);
 }));
 
-router.delete("/companies/:companyId", asyncRoute(async (req, res) => {
+router.delete("/companies/:companyId", requirePermission(PERMISSIONS.DELETE_COMPANY), asyncRoute(async (req, res) => {
   const found = await findCompany(req.params.companyId);
   if (!found) {
     const error = new Error("Company not found.");
@@ -128,6 +135,7 @@ router.delete("/companies/:companyId", asyncRoute(async (req, res) => {
 
 router.post(
   "/companies/:companyId/details/:detailKey/files",
+  requirePermission(PERMISSIONS.UPLOAD_FILE),
   upload.array("files", 20),
   asyncRoute(async (req, res) => {
     assertSafeDetailKey(req.params.detailKey, DETAIL_KEYS);
@@ -169,6 +177,7 @@ router.post(
 
 router.delete(
   "/companies/:companyId/details/:detailKey/files/:fileId",
+  requirePermission(PERMISSIONS.DELETE_FILE),
   asyncRoute(async (req, res) => {
     assertSafeDetailKey(req.params.detailKey, DETAIL_KEYS);
     assertSafeSegment(req.params.fileId, "file id");

@@ -5,9 +5,15 @@ import BoardEventsSidebar from "./01-app-shell/01-board-events/BoardEventsSideba
 import AIAssistant from "./01-app-shell/04-ai-assistant/AIAssistant";
 import { getCurrentYear } from "./06-config/treeConfig";
 import { useRepositoryData } from "./04-hooks/hooks";
+import { useAuth } from "./04-hooks/auth";
+import { PERMISSIONS } from "./06-config/permissions";
+import LoginScreen from "./01-app-shell/00-header/LoginScreen";
+import AdminPanel from "./01-app-shell/00-header/AdminPanel";
 import "./App.css";
 
-function App() {
+function RepositoryApp() {
+  const { user, logout, can } = useAuth();
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const [selectedNodeId, updateSelectedNodeId] = useState("pfccl");
   const [selectedYearByDivision, updateSelectedYearByDivision] = useState({});
   const [selectedStatusByDivision, updateSelectedStatusByDivision] = useState(
@@ -147,6 +153,7 @@ function App() {
 
   const addCompany = useCallback(
     async (division) => {
+      if (!can(PERMISSIONS.CREATE_COMPANY)) return;
       updateSelectedYearByDivision((current) => ({
         ...current,
         [division]: getCurrentYear(),
@@ -158,11 +165,12 @@ function App() {
       const company = await repository.addCompany(division);
       if (company?.id) updateSelectedNodeId(company.id);
     },
-    [repository.addCompany],
+    [repository.addCompany, can],
   );
 
   const deleteCompany = useCallback(
     async (companyId) => {
+      if (!can(PERMISSIONS.DELETE_COMPANY)) return;
       const company = companies.find((item) => item.id === companyId);
       if (!company || !window.confirm(`Delete "${company.name}"?`)) return;
       await repository.deleteCompany(companyId);
@@ -172,16 +180,20 @@ function App() {
       )
         updateSelectedNodeId(company.division);
     },
-    [companies, repository.deleteCompany, selectedNodeId],
+    [companies, repository.deleteCompany, selectedNodeId, can],
   );
 
   const updateCompany = useCallback(
     (companyId, updater) => {
+      if (!can(PERMISSIONS.UPDATE_COMPANY)) return;
       const current = companies.find((company) => company.id === companyId);
       if (!current) return;
 
       const next =
         typeof updater === "function" ? updater(current) : { ...current, ...updater };
+      if (next.name !== current.name && !can(PERMISSIONS.RENAME_COMPANY)) {
+        next.name = current.name;
+      }
       const currentStatus = String(current.status || "ACTIVE").toUpperCase();
       const nextStatus = String(next.status || "ACTIVE").toUpperCase();
       if (
@@ -209,7 +221,7 @@ function App() {
 
       repository.updateCompany(companyId, () => next);
     },
-    [companies, repository.updateCompany],
+    [companies, repository.updateCompany, can],
   );
 
   const openMeetingEvent = useCallback(
@@ -279,6 +291,11 @@ function App() {
         {repository.error && (
           <div className="app-error">{repository.error}</div>
         )}
+        <div className="session-actions">
+          <span>{user.username} <small>{user.role}</small></span>
+          {can(PERMISSIONS.MANAGE_ADMINS) && <button type="button" onClick={() => setAdminPanelOpen(true)}>Admins</button>}
+          <button type="button" onClick={logout}>Sign out</button>
+        </div>
       </header>
 
       <BoardEventsSidebar
@@ -299,6 +316,8 @@ function App() {
               onStatusChange={handleStatusChange}
               onAddCompany={addCompany}
               onDeleteCompany={deleteCompany}
+              canAddCompany={can(PERMISSIONS.CREATE_COMPANY)}
+              canDeleteCompany={can(PERMISSIONS.DELETE_COMPANY)}
               divisions={repository.divisions}
               root={repository.root}
               loading={repository.loading}
@@ -315,17 +334,17 @@ function App() {
               selectedStatusByDivision={selectedStatusByDivision}
               updateCompanies={updateCompany}
               onSelect={handleSelectNode}
-              onUploadFiles={repository.uploadFiles}
-              onDeleteFile={repository.deleteFile}
+              onUploadFiles={can(PERMISSIONS.UPLOAD_FILE) ? repository.uploadFiles : undefined}
+              onDeleteFile={can(PERMISSIONS.DELETE_FILE) ? repository.deleteFile : undefined}
               loadingDetail={repository.loadingDetail}
               root={repository.root}
               meetingFocus={meetingFocus}
               meetingsByCompany={repository.meetingsByCompany}
               meetingDashboard={repository.meetingDashboard}
-              onCreateMeeting={repository.createMeeting}
-              onUpdateMeeting={repository.updateMeeting}
-              onDeleteMeeting={repository.deleteMeeting}
-              onRecordEarlyBoardMeeting={repository.recordEarlyBoardMeeting}
+              onCreateMeeting={can(PERMISSIONS.CREATE_MEETING) ? repository.createMeeting : undefined}
+              onUpdateMeeting={can(PERMISSIONS.UPDATE_MEETING) ? repository.updateMeeting : undefined}
+              onDeleteMeeting={can(PERMISSIONS.DELETE_MEETING) ? repository.deleteMeeting : undefined}
+              onRecordEarlyBoardMeeting={can(PERMISSIONS.CREATE_MEETING) ? repository.recordEarlyBoardMeeting : undefined}
               onOpenCompanyMeeting={openCompanyMeeting}
               aiSelecting={aiSelecting}
               aiSelections={aiSelections}
@@ -344,7 +363,15 @@ function App() {
           onRemoveSelection={removeAiSelection}
         />
       </main>
+      {adminPanelOpen && <AdminPanel onClose={() => setAdminPanelOpen(false)} />}
     </div>
   );
+}
+
+function App() {
+  const { user, ready } = useAuth();
+  if (!ready) return <div className="login-page">Checking your session…</div>;
+  if (!user) return <LoginScreen />;
+  return <RepositoryApp key={user.id} />;
 }
 export default App;
