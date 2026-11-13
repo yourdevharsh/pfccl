@@ -407,7 +407,18 @@ export function useRepositoryData({
       let target = next[property] ||= {};
       path.slice(0, -1).forEach((part) => { target = target[part] ||= {}; });
       const last = path.at(-1);
-      target[last] = transform(Array.isArray(target[last]) ? target[last] : []);
+      const currentEntry = target[last];
+      const currentFiles = Array.isArray(currentEntry)
+        ? currentEntry
+        : Array.isArray(currentEntry?.files)
+          ? currentEntry.files
+          : [];
+      const nextFiles = transform(currentFiles);
+      if (currentEntry && typeof currentEntry === "object" && !Array.isArray(currentEntry)) {
+        target[last] = { ...currentEntry, files: nextFiles };
+      } else {
+        target[last] = { files: nextFiles };
+      }
       return next;
     }));
   }, [replaceCompanies, replaceCompanyMeetings]);
@@ -417,7 +428,7 @@ export function useRepositoryData({
       id: `draft-file-${crypto.randomUUID()}`,
       originalName: file.name,
       name: file.name,
-      mimeType: file.type,
+      mimeType: file.type || (/\.pdf$/i.test(file.name) ? "application/pdf" : "application/octet-stream"),
       size: file.size,
       url: URL.createObjectURL(file),
       __draftFile: true,
@@ -430,10 +441,19 @@ export function useRepositoryData({
 
   const deleteFile = useCallback(async ({ companyId, detailKey, field, fileId }) => {
     recordChange();
-    const matchingUpload = pendingFileOperations.current.findIndex((operation) => operation.type === "upload" && operation.companyId === companyId && operation.draftIds.includes(fileId));
-    if (matchingUpload >= 0) {
-      const [operation] = pendingFileOperations.current.splice(matchingUpload, 1);
-      operation.files.forEach((file) => URL.revokeObjectURL(file.url));
+    const matchingUploadIndex = pendingFileOperations.current.findIndex((operation) =>
+      operation.type === "upload" && operation.companyId === companyId && operation.draftIds?.includes(fileId)
+    );
+    if (matchingUploadIndex >= 0) {
+      const operation = pendingFileOperations.current[matchingUploadIndex];
+      const draftIndex = operation.draftIds.indexOf(fileId);
+      if (draftIndex >= 0) {
+        operation.draftIds.splice(draftIndex, 1);
+        operation.files.splice(draftIndex, 1);
+      }
+      if (!operation.files.length) {
+        pendingFileOperations.current.splice(matchingUploadIndex, 1);
+      }
     } else {
       pendingFileOperations.current.push({ type: "delete", companyId, detailKey, field, fileId });
     }

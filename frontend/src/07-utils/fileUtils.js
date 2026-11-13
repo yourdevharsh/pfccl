@@ -52,6 +52,10 @@ export function getFileUrl(file) {
   const rawUrl = typeof file === "string" ? file : file.url || file.downloadUrl || file.path || "";
   if (!rawUrl) return "";
 
+  if (rawUrl.startsWith("blob:") || rawUrl.startsWith("data:")) {
+    return rawUrl;
+  }
+
   try {
     const parsed = new URL(rawUrl, window.location.href);
     if (parsed.pathname.startsWith("/api/files/")) return `${apiBase}${parsed.pathname.slice("/api".length)}${parsed.search}`;

@@ -25,6 +25,10 @@ export default function PDFViewer({ file, title }) {
       let lastMessage = "The repository could not find this file.";
 
       for (const candidate of candidates) {
+        if (candidate.startsWith("blob:") || candidate.startsWith("data:")) {
+          if (!cancelled) setState({ status: "ready", url: candidate, message: "" });
+          return;
+        }
         const target = new URL(candidate, window.location.href);
         try {
           // Same-origin HEAD gives us a useful early failure signal. For

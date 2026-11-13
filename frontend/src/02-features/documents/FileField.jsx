@@ -7,7 +7,13 @@ function DeleteIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path
 function PlusIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>; }
 
 export default function FileField({ label, value, field, detailKey, companyId, onUpload, onDeleteFile, onOpenFile, accept = "*/*" }) {
-  const files = Array.isArray(value) ? value.filter(Boolean) : value ? [value] : [];
+  const files = Array.isArray(value?.files)
+    ? value.files.filter(Boolean)
+    : Array.isArray(value)
+      ? value.filter(Boolean)
+      : value
+        ? [value]
+        : [];
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const inputId = `file-${useId().replace(/[^a-zA-Z0-9_-]/g, "-")}`;
