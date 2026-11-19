@@ -3,6 +3,7 @@
   width: 100%;
   min-height: 720px;
   display: flex;
+  flex-wrap: wrap;
   align-items: stretch;
   gap: 14px;
 }
@@ -165,7 +166,6 @@
 }
 
 @media (max-width: 1000px) {
-  .details-workspace { flex-wrap: wrap; }
   .details-main-pane.details-pane-expanded { flex-basis: 100%; }
   .pdf-pane-expanded {
     min-width: min(100%, 420px);

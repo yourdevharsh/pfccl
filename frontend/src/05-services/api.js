@@ -165,6 +165,28 @@ export const aiApi = {
     });
     return response?.data ?? response;
   },
+
+  async downloadReport(payload) {
+    const response = await fetch(`${API_BASE_URL}/ai/reports`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      let message = `Request failed (${response.status})`;
+      try { message = (await response.json()).message || message; } catch { /* use status */ }
+      throw new Error(message);
+    }
+    const blob = await response.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "PFCCL-report.docx";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  },
 };
 
 export const authApi = {

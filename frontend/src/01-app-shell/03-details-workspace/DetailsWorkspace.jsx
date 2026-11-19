@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import GeneralDetails from "./02-general-details/GeneralDetails";
 import DetailsNavigation from "./01-navigation/DetailsNavigation";
 import PDFPane from "./03-pdf-pane/PDFPane";
+import ReportPane from "./04-report-pane/ReportPane";
 import { getFileKey } from "../../07-utils/fileUtils";
 import { getAiSelectionFromTarget } from "../../07-utils/aiSelection";
 import "./detailsWorkspace.css";
@@ -40,6 +41,9 @@ function DetailsWorkspace({
       lastUsed: 0,
     },
   ]);
+  // General Details is the primary workspace. Reporting is available from its
+  // own rail below the document workspace until the user explicitly opens it.
+  const [reportPanel, setReportPanel] = useState({ minimized: true, closed: false });
   const pendingSelectionRef = useRef(null);
   const lastClickSelectionRef = useRef(null);
 
@@ -182,13 +186,16 @@ function DetailsWorkspace({
 
   useEffect(() => {
     const usage = ++usageRef.current;
-    setPanels((current) =>
-      current.map((panel) =>
-        panel.id === "main" && !panel.closed && !panel.minimized
-          ? { ...panel, lastUsed: usage }
+    setPanels((current) => {
+      let next = current.map((panel) =>
+        panel.id === "main"
+          ? { ...panel, minimized: false, closed: false, lastUsed: usage }
           : panel,
-      ),
-    );
+      );
+      const expanded = next.filter((panel) => !panel.closed && !panel.minimized);
+      if (expanded.length > 2) next = minimizeOldestExpanded(next, "main");
+      return next;
+    });
   }, [selectedNodeId]);
 
   useEffect(() => {
@@ -360,6 +367,10 @@ function DetailsWorkspace({
     );
   }
 
+  function expandReport() {
+    setReportPanel({ minimized: false, closed: false });
+  }
+
   const mainPanel = panels.find((panel) => panel.id === "main");
   const pdfPanels = panels.filter((panel) => panel.type === "pdf");
 
@@ -483,6 +494,14 @@ function DetailsWorkspace({
           paneNumber={`PDF ${index + 1}`}
         />
       ))}
+
+      <ReportPane
+        expanded={!reportPanel.closed && !reportPanel.minimized}
+        closed={reportPanel.closed}
+        onExpand={expandReport}
+        onMinimize={() => setReportPanel((current) => ({ ...current, minimized: true }))}
+        onClose={() => setReportPanel({ minimized: true, closed: true })}
+      />
 
       {mainPanel?.closed && (
         <button

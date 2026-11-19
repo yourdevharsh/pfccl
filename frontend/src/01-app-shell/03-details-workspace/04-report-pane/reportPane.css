@@ -1,0 +1,15 @@
+.report-pane { border: 1px solid rgb(30 45 83 / 12%); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-md); overflow: hidden; }
+.report-pane-expanded { order: 10; flex: 0 0 100%; }
+.report-pane-minimized { order: 10; flex: 0 0 54px; width: 54px; min-height: 180px; display: flex; flex-direction: column; align-items: center; padding: 8px 5px; background: linear-gradient(180deg, #fff, var(--pfccl-gold-soft)); }
+.report-pane-minimized > div { flex: 1; display: grid; place-items: center; writing-mode: vertical-rl; transform: rotate(180deg); color: var(--pfccl-navy); font-size: 9px; font-weight: 950; letter-spacing: .08em; }
+.report-pane-header { min-height: 58px; display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 8px 14px; border-bottom: 1px solid rgb(30 45 83 / 10%); background: linear-gradient(180deg, #fff, #fafcff); }
+.report-form { display: grid; gap: 14px; padding: 18px; }
+.report-form label { display: grid; gap: 7px; color: var(--ink-700); font-size: 11px; font-weight: 850; }
+.report-form textarea, .report-form select { width: 100%; border: 1px solid var(--line-strong); border-radius: 9px; padding: 10px; color: var(--ink-800); font: inherit; background: #fff; resize: vertical; }
+.report-form-actions { display: flex; align-items: end; justify-content: space-between; gap: 14px; }
+.report-form-actions > label { min-width: 170px; }
+.report-form button, .report-reopen-button { min-height: 38px; border: 1px solid var(--pfccl-gold-border); border-radius: 9px; padding: 0 14px; background: linear-gradient(135deg, var(--pfccl-gold-soft), #fff); color: var(--pfccl-navy); font-size: 11px; font-weight: 900; cursor: pointer; }
+.report-form button:disabled { opacity: .6; cursor: wait; }
+.report-error { color: var(--pfccl-red); font-size: 11px; font-weight: 700; }
+.report-reopen-button { order: 10; align-self: flex-start; }
+@media (max-width: 700px) { .report-form-actions { align-items: stretch; flex-direction: column; } .report-form-actions > label { min-width: 0; } }
